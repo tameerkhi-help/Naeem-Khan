@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | NKT Installment System</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Top Navigation -->
+    <nav class="main-nav">
+        <div class="nav-brand">
+            <i class="fas fa-chart-line"></i>
+            <h1>Dashboard</h1>
+            <span id="accessBadge" class="badge staff-badge">Staff Mode</span>
+        </div>
+        <div class="nav-actions">
+            <button id="addCustomerBtn" class="btn-success" disabled>
+                <i class="fas fa-user-plus"></i> Add New Customer
+            </button>
+            <button id="logoutBtn" class="btn-logout">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Search & Stats Row -->
+        <div class="dashboard-row">
+            <!-- Search Panel -->
+            <div class="search-panel">
+                <div class="panel-header">
+                    <i class="fas fa-search"></i>
+                    <h3>Customer Search</h3>
+                </div>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Search by Name, CNIC, or Tracking ID...">
+                    <button id="searchBtn" class="btn-primary">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                </div>
+                <div class="search-hint">
+                    <i class="fas fa-lightbulb"></i> Tip: You can search with partial information.
+                </div>
+            </div>
+
+            <!-- Key Statistics -->
+            <div class="stats-panel">
+                <div class="panel-header">
+                    <i class="fas fa-chart-pie"></i>
+                    <h3>Key Statistics</h3>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card total">
+                        <div class="stat-icon"><i class="fas fa-users"></i></div>
+                        <div class="stat-info">
+                            <h4>Total Customers</h4>
+                            <p id="totalCustomers">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card pending">
+                        <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                        <div class="stat-info">
+                            <h4>Pending Amount</h4>
+                            <p id="totalPending">₹0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card due">
+                        <div class="stat-icon"><i class="fas fa-calendar-exclamation"></i></div>
+                        <div class="stat-info">
+                            <h4>Due This Month</h4>
+                            <p id="dueThisMonth">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card received">
+                        <div class="stat-icon"><i class="fas fa-rupee-sign"></i></div>
+                        <div class="stat-info">
+                            <h4>Received (Month)</h4>
+                            <p id="monthReceived">₹0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Due Payments & Customer List -->
+        <div class="dashboard-row">
+            <!-- Due Payments Panel -->
+            <div class="due-panel">
+                <div class="panel-header">
+                    <i class="fas fa-calendar-check"></i>
+                    <h3>Due Payments - Current Month</h3>
+                    <button id="refreshDueBtn" class="btn-icon">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                <div class="panel-content">
+                    <div class="due-list" id="dueList">
+                        <div class="empty-state">
+                            <i class="fas fa-check-circle"></i>
+                            <p>No due payments found for this month.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer List Panel -->
+            <div class="customer-panel">
+                <div class="panel-header">
+                    <i class="fas fa-list"></i>
+                    <h3>All Customers</h3>
+                    <div class="results-count">Showing <span id="resultsCount">0</span> customers</div>
+                </div>
+                <div class="panel-content">
+                    <div class="customer-table-container">
+                        <table class="customer-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Customer Name</th>
+                                    <th>Balance</th>
+                                    <th>Installment</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customersTableBody">
+                                <!-- Customer rows will be inserted here by JavaScript -->
+                                <tr class="empty-row">
+                                    <td colspan="6">
+                                        <div class="empty-state">
+                                            <i class="fas fa-user-plus"></i>
+                                            <p>No customers found. Add your first customer!</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Admin PIN for session -->
+    <input type="hidden" id="adminPin" value="134047">
+    
+    <script type="module" src="script.js"></script>
+</body>
+</html>
