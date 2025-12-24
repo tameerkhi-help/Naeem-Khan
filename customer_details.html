@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Ledger | NKT Installment System</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Top Navigation -->
+    <nav class="main-nav">
+        <div class="nav-brand">
+            <i class="fas fa-file-invoice"></i>
+            <h1>Customer Ledger</h1>
+            <span id="trackingIdDisplay" class="tracking-id">ID: Loading...</span>
+        </div>
+        <div class="nav-actions">
+            <button id="dashboardBtn" class="btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </button>
+            <button id="printReceiptBtn" class="btn-primary">
+                <i class="fas fa-print"></i> Print Receipt
+            </button>
+            <button id="logoutBtn" class="btn-logout">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Customer Summary Header -->
+        <div class="customer-header">
+            <div class="customer-profile">
+                <div class="profile-image" id="profileImage">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="profile-info">
+                    <h2 id="customerName">Loading Customer...</h2>
+                    <div class="profile-meta">
+                        <span><i class="fas fa-id-card"></i> CNIC: <strong id="customerCnic">N/A</strong></span>
+                        <span><i class="fas fa-phone"></i> Phone: <strong id="customerPhone">N/A</strong></span>
+                        <span><i class="fas fa-calendar-alt"></i> Joined: <strong id="joinDate">N/A</strong></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="customer-status">
+                <div class="status-card balance">
+                    <h4><i class="fas fa-wallet"></i> Remaining Balance</h4>
+                    <p class="amount" id="remainingBalance">₹0</p>
+                </div>
+                <div class="status-card installment">
+                    <h4><i class="fas fa-calendar-check"></i> Monthly Installment</h4>
+                    <p class="amount" id="monthlyAmount">₹0</p>
+                </div>
+                <div class="status-card paid">
+                    <h4><i class="fas fa-check-circle"></i> Total Paid</h4>
+                    <p class="amount" id="totalPaid">₹0</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="ledger-container">
+            <!-- Left Column: Customer Details -->
+            <div class="ledger-details">
+                <!-- Product Information -->
+                <div class="detail-card">
+                    <div class="card-header">
+                        <i class="fas fa-shopping-bag"></i>
+                        <h3>Product Information</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="detail-row">
+                            <span>Product Name:</span>
+                            <strong id="detailProductName">N/A</strong>
+                        </div>
+                        <div class="detail-row">
+                            <span>Model Number:</span>
+                            <strong id="detailModelNumber">N/A</strong>
+                        </div>
+                        <div class="detail-row">
+                            <span>Total Price:</span>
+                            <strong id="detailTotalPrice">₹0</strong>
+                        </div>
+                        <div class="detail-row">
+                            <span>Advance Payment:</span>
+                            <strong id="detailAdvance">₹0</strong>
+                        </div>
+                        <div class="detail-row">
+                            <span>Start Date:</span>
+                            <strong id="detailStartDate">N/A</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Information -->
+                <div class="detail-card">
+                    <div class="card-header">
+                        <i class="fas fa-address-book"></i>
+                        <h3>Contact Information</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="detail-row">
+                            <span><i class="fas fa-home"></i> Residential:</span>
+                            <span id="detailResidential">N/A</span>
+                        </div>
+                        <div class="detail-row">
+                            <span><i class="fas fa-map-pin"></i> Permanent:</span>
+                            <span id="detailPermanent">N/A</span>
+                        </div>
+                        <div class="detail-row">
+                            <span><i class="fas fa-phone"></i> Phone 1:</span>
+                            <span id="detailPhone1">N/A</span>
+                        </div>
+                        <div class="detail-row">
+                            <span><i class="fas fa-phone-alt"></i> Phone 2:</span>
+                            <span id="detailPhone2">N/A</span>
+                        </div>
+                        <div class="detail-row" id="googleMapsRow" style="display: none;">
+                            <span><i class="fas fa-map-marked-alt"></i> Location:</span>
+                            <a href="#" id="detailMapsLink" target="_blank" class="maps-link">View on Google Maps</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Guarantor Information -->
+                <div class="detail-card">
+                    <div class="card-header">
+                        <i class="fas fa-handshake"></i>
+                        <h3>Guarantor Details</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="detail-row">
+                            <span>Name:</span>
+                            <strong id="detailGuarantorName">N/A</strong>
+                        </div>
+                        <div class="detail-row">
+                            <span>CNIC:</span>
+                            <span id="detailGuarantorCnic">N/A</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>Phone:</span>
+                            <span id="detailGuarantorPhone">N/A</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>Address:</span>
+                            <span id="detailGuarantorAddress">N/A</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Actions (Only visible in Admin mode) -->
+                <div class="detail-card admin-actions" id="adminActionsCard" style="display: none;">
+                    <div class="card-header">
+                        <i class="fas fa-tools"></i>
+                        <h3>Admin Actions</h3>
+                    </div>
+                    <div class="card-body">
+                        <button id="recordPaymentBtn" class="btn-success">
+                            <i class="fas fa-money-bill-wave"></i> Record Payment
+                        </button>
+                        <button id="editCustomerBtn" class="btn-primary">
+                            <i class="fas fa-edit"></i> Edit Details
+                        </button>
+                        <button id="deleteCustomerBtn" class="btn-danger">
+                            <i class="fas fa-trash"></i> Delete Customer
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Payment Ledger -->
+            <div class="ledger-payments">
+                <div class="payment-header">
+                    <h3><i class="fas fa-receipt"></i> Payment History</h3>
+                    <div class="payment-stats">
+                        <span>Total Paid: <strong id="paymentTotal">₹0</strong></span>
+                        <span>Last Payment: <strong id="lastPaymentDate">N/A</strong></span>
+                    </div>
+                </div>
+                
+                <div class="payment-list-container">
+                    <div class="payment-list" id="paymentList">
+                        <!-- Payment records will be inserted here -->
+                        <div class="empty-payments">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            <h4>No Payments Recorded</h4>
+                            <p>Click "Record Payment" to add the first payment.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Payment Entry Form (Only visible in Admin mode) -->
+                <div class="payment-entry" id="paymentEntryForm" style="display: none;">
+                    <h4><i class="fas fa-plus-circle"></i> Record New Payment</h4>
+                    <div class="payment-form">
+                        <div class="input-group">
+                            <label for="paymentAmount"><i class="fas fa-rupee-sign"></i> Amount (₹)</label>
+                            <input type="number" id="paymentAmount" min="1" placeholder="Enter amount">
+                        </div>
+                        <div class="input-group">
+                            <label for="paymentDate"><i class="fas fa-calendar"></i> Date</label>
+                            <input type="date" id="paymentDate">
+                        </div>
+                        <div class="input-group">
+                            <label for="paymentMethod"><i class="fas fa-credit-card"></i> Method</label>
+                            <select id="paymentMethod">
+                                <option value="Cash">Cash</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="JazzCash">JazzCash</option>
+                                <option value="EasyPaisa">EasyPaisa</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="input-group full-width">
+                            <label for="paymentNotes"><i class="fas fa-sticky-note"></i> Notes (Optional)</label>
+                            <textarea id="paymentNotes" rows="2" placeholder="Any additional notes..."></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" id="cancelPaymentBtn" class="btn-secondary">Cancel</button>
+                            <button type="button" id="submitPaymentBtn" class="btn-success">Record Payment</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- WhatsApp-style Receipt (Hidden until printed) -->
+        <div class="whatsapp-receipt" id="whatsappReceipt">
+            <div class="receipt-header">
+                <div class="receipt-logo">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <h2>Naeem Khan Traders</h2>
+                </div>
+                <div class="receipt-title">PAYMENT RECEIPT</div>
+                <div class="receipt-meta">
+                    <span>Date: <strong id="receiptDate"></strong></span>
+                    <span>Receipt #: <strong id="receiptNumber"></strong></span>
+                </div>
+            </div>
+            
+            <div class="receipt-body">
+                <div class="receipt-section">
+                    <h4>Customer Information</h4>
+                    <p><strong>Name:</strong> <span id="receiptCustomerName"></span></p>
+                    <p><strong>CNIC:</strong> <span id="receiptCustomerCnic"></span></p>
+                    <p><strong>Phone:</strong> <span id="receiptCustomerPhone"></span></p>
+                </div>
+                
+                <div class="receipt-section">
+                    <h4>Payment Details</h4>
+                    <p><strong>Product:</strong> <span id="receiptProduct"></span></p>
+                    <p><strong>Total Price:</strong> <span id="receiptTotalPrice"></span></p>
+                    <p><strong>Advance Paid:</strong> <span id="receiptAdvance"></span></p>
+                    <p><strong>Remaining Balance:</strong> <span id="receiptRemaining"></span></p>
+                </div>
+                
+                <div class="receipt-section highlight">
+                    <h4>Payment Information</h4>
+                    <p><strong>Amount Received:</strong> ₹<span id="receiptAmount"></span></p>
+                    <p><strong>Payment Method:</strong> <span id="receiptMethod"></span></p>
+                    <p><strong>Date of Payment:</strong> <span id="receiptPaymentDate"></span></p>
+                    <p><strong>Received By:</strong> Naeem Khan Traders (Authorized Signature)</p>
+                </div>
+                
+                <div class="receipt-footer">
+                    <p><i>This is a computer-generated receipt. No signature required.</i></p>
+                    <p>Thank you for your payment!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden field to store customer ID -->
+    <input type="hidden" id="customerId" value="">
+    
+    <script type="module" src="script.js"></script>
+</body>
+</html>
