@@ -3,149 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | NKT Installment System</title>
+    <title>Dashboard - NK Traders</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <!-- Top Navigation -->
-    <nav class="main-nav">
-        <div class="nav-brand">
-            <i class="fas fa-chart-line"></i>
-            <h1>Dashboard</h1>
-            <span id="accessBadge" class="badge staff-badge">Staff Mode</span>
-        </div>
-        <div class="nav-actions">
-            <button id="addCustomerBtn" class="btn-success" disabled>
-                <i class="fas fa-user-plus"></i> Add New Customer
-            </button>
-            <button id="logoutBtn" class="btn-logout">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </button>
-        </div>
-    </nav>
-
+    <!-- Navigation will be loaded by script.js -->
+    <div id="navbar"></div>
+    
     <div class="container">
-        <!-- Search & Stats Row -->
-        <div class="dashboard-row">
-            <!-- Search Panel -->
-            <div class="search-panel">
-                <div class="panel-header">
-                    <i class="fas fa-search"></i>
-                    <h3>Customer Search</h3>
+        <div class="dashboard-header">
+            <h1><i class="fas fa-tachometer-alt"></i> Customer Dashboard</h1>
+            <div class="stats-summary">
+                <div class="stat-card">
+                    <h3>Total Customers</h3>
+                    <p id="totalCustomers">0</p>
                 </div>
-                <div class="search-box">
-                    <input type="text" id="searchInput" placeholder="Search by Name, CNIC, or Tracking ID...">
-                    <button id="searchBtn" class="btn-primary">
-                        <i class="fas fa-search"></i> Search
-                    </button>
+                <div class="stat-card">
+                    <h3>Active Loans</h3>
+                    <p id="activeLoans">0</p>
                 </div>
-                <div class="search-hint">
-                    <i class="fas fa-lightbulb"></i> Tip: You can search with partial information.
+                <div class="stat-card">
+                    <h3>Completed</h3>
+                    <p id="completedLoans">0</p>
                 </div>
-            </div>
-
-            <!-- Key Statistics -->
-            <div class="stats-panel">
-                <div class="panel-header">
-                    <i class="fas fa-chart-pie"></i>
-                    <h3>Key Statistics</h3>
-                </div>
-                <div class="stats-grid">
-                    <div class="stat-card total">
-                        <div class="stat-icon"><i class="fas fa-users"></i></div>
-                        <div class="stat-info">
-                            <h4>Total Customers</h4>
-                            <p id="totalCustomers">0</p>
-                        </div>
-                    </div>
-                    <div class="stat-card pending">
-                        <div class="stat-icon"><i class="fas fa-clock"></i></div>
-                        <div class="stat-info">
-                            <h4>Pending Amount</h4>
-                            <p id="totalPending">₹0</p>
-                        </div>
-                    </div>
-                    <div class="stat-card due">
-                        <div class="stat-icon"><i class="fas fa-calendar-exclamation"></i></div>
-                        <div class="stat-info">
-                            <h4>Due This Month</h4>
-                            <p id="dueThisMonth">0</p>
-                        </div>
-                    </div>
-                    <div class="stat-card received">
-                        <div class="stat-icon"><i class="fas fa-rupee-sign"></i></div>
-                        <div class="stat-info">
-                            <h4>Received (Month)</h4>
-                            <p id="monthReceived">₹0</p>
-                        </div>
-                    </div>
+                <div class="stat-card">
+                    <h3>Total Revenue</h3>
+                    <p id="totalRevenue">0 PKR</p>
                 </div>
             </div>
         </div>
-
-        <!-- Due Payments & Customer List -->
-        <div class="dashboard-row">
-            <!-- Due Payments Panel -->
-            <div class="due-panel">
-                <div class="panel-header">
-                    <i class="fas fa-calendar-check"></i>
-                    <h3>Due Payments - Current Month</h3>
-                    <button id="refreshDueBtn" class="btn-icon">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                </div>
-                <div class="panel-content">
-                    <div class="due-list" id="dueList">
-                        <div class="empty-state">
-                            <i class="fas fa-check-circle"></i>
-                            <p>No due payments found for this month.</p>
-                        </div>
-                    </div>
-                </div>
+        
+        <!-- Search Bar -->
+        <div class="search-container">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Search by Name, CNIC, or Tracking ID...">
+                <button id="searchBtn" class="btn-secondary">Search</button>
+                <button id="resetSearch" class="btn-outline">Show All</button>
             </div>
-
-            <!-- Customer List Panel -->
-            <div class="customer-panel">
-                <div class="panel-header">
-                    <i class="fas fa-list"></i>
-                    <h3>All Customers</h3>
-                    <div class="results-count">Showing <span id="resultsCount">0</span> customers</div>
-                </div>
-                <div class="panel-content">
-                    <div class="customer-table-container">
-                        <table class="customer-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Customer Name</th>
-                                    <th>Balance</th>
-                                    <th>Installment</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="customersTableBody">
-                                <!-- Customer rows will be inserted here by JavaScript -->
-                                <tr class="empty-row">
-                                    <td colspan="6">
-                                        <div class="empty-state">
-                                            <i class="fas fa-user-plus"></i>
-                                            <p>No customers found. Add your first customer!</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+            <div class="filter-options">
+                <label>
+                    <input type="checkbox" id="filterActive" checked> Show Active
+                </label>
+                <label>
+                    <input type="checkbox" id="filterCompleted" checked> Show Completed
+                </label>
+                <label>
+                    Sort by:
+                    <select id="sortBy">
+                        <option value="date">Newest First</option>
+                        <option value="name">Name (A-Z)</option>
+                        <option value="balance">Balance (High to Low)</option>
+                    </select>
+                </label>
+            </div>
+        </div>
+        
+        <!-- Customer List -->
+        <div class="customer-list-container">
+            <h2><i class="fas fa-users"></i> Customer List</h2>
+            <div id="customerList" class="customer-list">
+                <!-- Customer cards will be loaded here by script.js -->
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin"></i> Loading customers...
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Hidden Admin PIN for session -->
-    <input type="hidden" id="adminPin" value="134047">
     
-    <script type="module" src="script.js"></script>
+    <!-- Payment Modal (Hidden by default) -->
+    <div id="paymentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-money-bill-wave"></i> Record Payment</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p>Customer: <strong id="modalCustomerName"></strong></p>
+                <p>Tracking ID: <strong id="modalTrackingId"></strong></p>
+                <div class="payment-details">
+                    <div class="detail-row">
+                        <span>Total Price:</span>
+                        <span id="modalTotalPrice">0 PKR</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Amount Paid:</span>
+                        <span id="modalPaidAmount">0 PKR</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Remaining Balance:</span>
+                        <span id="modalRemainingBalance" class="remaining-amount">0 PKR</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Monthly Installment:</span>
+                        <span id="modalMonthlyInstallment">0 PKR</span>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="paymentAmount">Payment Amount (PKR) *</label>
+                    <input type="number" id="paymentAmount" min="1" placeholder="Enter amount">
+                </div>
+                
+                <div class="form-group">
+                    <label for="paymentDate">Payment Date *</label>
+                    <input type="date" id="paymentDate">
+                </div>
+                
+                <div class="form-group">
+                    <label for="paymentNotes">Notes (Optional)</label>
+                    <textarea id="paymentNotes" rows="2" placeholder="e.g., Cash payment, Bank transfer etc."></textarea>
+                </div>
+                
+                <div class="modal-actions">
+                    <button id="submitPayment" class="btn-primary">Record Payment</button>
+                    <button id="cancelPayment" class="btn-outline">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+    <script>
+        // Dashboard-specific JavaScript is in script.js
+    </script>
 </body>
 </html>
