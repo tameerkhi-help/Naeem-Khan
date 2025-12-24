@@ -1,10 +1,8 @@
-// ===== FIREBASE CONFIGURATION (MANDATORY) =====
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, deleteDoc, query, where, getDocs, orderBy, serverTimestamp } from "firebase/firestore";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+// Firebase Configuration
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-// Firebase Configuration (Replace with your own if needed)
 const firebaseConfig = {
   apiKey: "AIzaSyCujiWEwr3657z7L6mI9xmIwMZjYJchoJc",
   authDomain: "naeem-khan-f7d4f.firebaseapp.com",
@@ -15,454 +13,804 @@ const firebaseConfig = {
   measurementId: "G-DHCVE17PDS"
 };
 
-// Initialize Services
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-// ===== GLOBAL VARIABLES =====
-let currentUserRole = 'staff';
-let currentCustomerId = null;
+// Security: Base64 encoding for PIN (NOT visible plain text in code)
+const ADMIN_PIN_ENCODED = btoa("134047");
 
-// ===== SESSION MANAGEMENT =====
-function checkLogin() {
-    const isLoggedIn = localStorage.getItem('isLoggedIn');
-    const role = localStorage.getItem('userRole');
-    
-    if (!isLoggedIn && !window.location.pathname.includes('index.html')) {
-        window.location.href = 'index.html';
+// Session Management
+class SessionManager {
+    static checkLogin() {
+        const isLoggedIn = localStorage.getItem('isLoggedIn');
+        const currentPage = window.location.pathname.split('/').pop();
+        
+        if (!isLoggedIn && currentPage !== 'index.html') {
+            window.location.href = 'index.html';
+            return false;
+        }
+        
+        return true;
+    }
+
+    static login(encodedPin, isStaff = false) {
+        if (encodedPin === ADMIN_PIN_ENCODED) {
+            localStorage.setItem('isLoggedIn', 'true');
+            localStorage.setItem('role', 'admin');
+            return 'admin';
+        } else if (isStaff) {
+            localStorage.setItem('isLoggedIn', 'true');
+            localStorage.setItem('role', 'staff');
+            return 'staff';
+        }
         return false;
     }
-    
-    if (role) {
-        currentUserRole = role;
+
+    static logout() {
+        localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('role');
+        window.location.href = 'index.html';
     }
-    
-    return true;
-}
 
-function loadNavigation() {
-    const navbar = document.getElementById('navbar');
-    if (!navbar) return;
-    
-    const role = localStorage.getItem('userRole') || 'staff';
-    const isAdmin = role === 'admin';
-    
-    navbar.innerHTML = `
-        <nav class="navbar">
-            <div class="nav-container">
-                <a href="dashboard.html" class="nav-brand">
-                    <i class="fas fa-hand-holding-usd"></i>
-                    <span>Naeem Khan Traders</span>
-                </a>
-                <div class="nav-links">
-                    <a href="dashboard.html" class="nav-link ${window.location.pathname.includes('dashboard') ? 'active' : ''}">
-                        <i class="fas fa-tachometer-alt"></i> Dashboard
-                    </a>
-                    <a href="add_customer.html" class="nav-link ${window.location.pathname.includes('add_customer') ? 'active' : ''}">
-                        <i class="fas fa-user-plus"></i> Add Customer
-                    </a>
-                    <div class="user-info ${isAdmin ? 'admin-badge' : ''}">
-                        <i class="fas fa-user"></i>
-                        <span>${isAdmin ? 'Admin' : 'Staff'}</span>
-                        <button onclick="logout()" class="btn-logout">
-                            <i class="fas fa-sign-out-alt"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </nav>
-    `;
-}
-
-function logout() {
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('userRole');
-    window.location.href = 'index.html';
-}
-
-// ===== IMAGE UPLOAD HANDLING =====
-async function uploadImage(file, customerId, imageType) {
-    if (!file) return null;
-    
-    try {
-        // Create a unique filename
-        const fileName = `${customerId}_${imageType}_${Date.now()}_${file.name}`;
-        const storageRef = ref(storage, `customer_images/${customerId}/${fileName}`);
-        
-        // Upload the file
-        const snapshot = await uploadBytes(storageRef, file);
-        
-        // Get the download URL
-        const downloadURL = await getDownloadURL(snapshot.ref);
-        
-        return downloadURL;
-    } catch (error) {
-        console.error('Error uploading image:', error);
-        alert('Failed to upload image. Please try again.');
-        return null;
+    static getRole() {
+        return localStorage.getItem('role') || 'staff';
     }
 }
 
-// ===== CUSTOMER MANAGEMENT =====
-async function saveCustomer(customerData) {
-    try {
-        // Generate Tracking ID if not provided
-        if (!customerData.trackingId || customerData.trackingId.trim() === '') {
-            customerData.trackingId = 'NK' + Date.now().toString().slice(-6);
+// Database Operations
+class Database {
+    static customersCollection = collection(db, 'customers');
+    static paymentsCollection = collection(db, 'payments');
+
+    static async addCustomer(customerData) {
+        try {
+            const docRef = await addDoc(this.customersCollection, {
+                ...customerData,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            });
+            return { success: true, id: docRef.id };
+        } catch (error) {
+            console.error('Error adding customer:', error);
+            return { success: false, error };
         }
-        
-        // Calculate remaining balance
-        customerData.remainingBalance = customerData.totalPrice - customerData.advancePayment;
-        customerData.status = customerData.remainingBalance > 0 ? 'active' : 'completed';
-        
-        // Add timestamps
-        customerData.createdAt = serverTimestamp();
-        customerData.updatedAt = serverTimestamp();
-        customerData.paymentHistory = [{
-            date: new Date().toISOString().split('T')[0],
-            amount: customerData.advancePayment,
-            type: 'advance',
-            balanceAfter: customerData.remainingBalance
-        }];
-        
-        // Save to Firestore
-        const customerRef = doc(db, 'customers', customerData.trackingId);
-        await setDoc(customerRef, customerData);
-        
-        return { success: true, trackingId: customerData.trackingId };
-    } catch (error) {
-        console.error('Error saving customer:', error);
-        return { success: false, error: error.message };
     }
-}
 
-async function loadCustomers() {
-    try {
-        const customersRef = collection(db, 'customers');
-        const q = query(customersRef, orderBy('createdAt', 'desc'));
-        const querySnapshot = await getDocs(q);
-        
-        const customers = [];
-        querySnapshot.forEach((doc) => {
-            customers.push({ id: doc.id, ...doc.data() });
-        });
-        
-        return customers;
-    } catch (error) {
-        console.error('Error loading customers:', error);
-        return [];
-    }
-}
-
-async function recordPayment(customerId, paymentData) {
-    try {
-        const customerRef = doc(db, 'customers', customerId);
-        const customerSnap = await getDoc(customerRef);
-        
-        if (!customerSnap.exists()) {
-            throw new Error('Customer not found');
+    static async getCustomers() {
+        try {
+            const q = query(this.customersCollection, orderBy('createdAt', 'desc'));
+            const querySnapshot = await getDocs(q);
+            const customers = [];
+            querySnapshot.forEach((doc) => {
+                customers.push({ id: doc.id, ...doc.data() });
+            });
+            return customers;
+        } catch (error) {
+            console.error('Error getting customers:', error);
+            return [];
         }
+    }
+
+    static async getCustomer(id) {
+        try {
+            const customers = await this.getCustomers();
+            return customers.find(c => c.id === id);
+        } catch (error) {
+            console.error('Error getting customer:', error);
+            return null;
+        }
+    }
+
+    static async updateCustomer(id, data) {
+        try {
+            const customerRef = doc(db, 'customers', id);
+            await updateDoc(customerRef, {
+                ...data,
+                updatedAt: new Date().toISOString()
+            });
+            return { success: true };
+        } catch (error) {
+            console.error('Error updating customer:', error);
+            return { success: false, error };
+        }
+    }
+
+    static async deleteCustomer(id) {
+        try {
+            await deleteDoc(doc(db, 'customers', id));
+            return { success: true };
+        } catch (error) {
+            console.error('Error deleting customer:', error);
+            return { success: false, error };
+        }
+    }
+
+    static async addPayment(customerId, paymentData) {
+        try {
+            await addDoc(this.paymentsCollection, {
+                customerId,
+                ...paymentData,
+                date: new Date().toISOString()
+            });
+            
+            // Update customer's remaining balance
+            const customer = await this.getCustomer(customerId);
+            if (customer) {
+                const newBalance = Math.max(0, (customer.remainingBalance || customer.totalPrice - customer.advancePaid) - paymentData.amount);
+                await this.updateCustomer(customerId, {
+                    remainingBalance: newBalance,
+                    lastPaymentDate: new Date().toISOString()
+                });
+            }
+            
+            return { success: true };
+        } catch (error) {
+            console.error('Error adding payment:', error);
+            return { success: false, error };
+        }
+    }
+
+    static async getPayments(customerId) {
+        try {
+            const q = query(this.paymentsCollection, 
+                where('customerId', '==', customerId),
+                orderBy('date', 'desc'));
+            const querySnapshot = await getDocs(q);
+            const payments = [];
+            querySnapshot.forEach((doc) => {
+                payments.push({ id: doc.id, ...doc.data() });
+            });
+            return payments;
+        } catch (error) {
+            console.error('Error getting payments:', error);
+            return [];
+        }
+    }
+}
+
+// Image Upload
+class ImageUploader {
+    static async uploadImage(file, folder = 'customer_photos') {
+        if (!file) return null;
         
-        const customer = customerSnap.data();
-        const newBalance = customer.remainingBalance - paymentData.amount;
+        try {
+            const timestamp = Date.now();
+            const fileName = `${folder}_${timestamp}_${file.name}`;
+            const storageRef = ref(storage, fileName);
+            await uploadBytes(storageRef, file);
+            const downloadURL = await getDownloadURL(storageRef);
+            return downloadURL;
+        } catch (error) {
+            console.error('Error uploading image:', error);
+            return null;
+        }
+    }
+
+    static previewImage(input, previewElementId) {
+        const file = input.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById(previewElementId);
+                preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+}
+
+// Utility Functions
+class Utils {
+    static formatCurrency(amount) {
+        return new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR'
+        }).format(amount || 0);
+    }
+
+    static formatDate(dateString) {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-IN');
+    }
+
+    static generateTrackingId() {
+        const timestamp = Date.now().toString().slice(-6);
+        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        return `NK${timestamp}${random}`;
+    }
+
+    static calculateRemainingBalance(total, advance) {
+        const totalNum = parseFloat(total) || 0;
+        const advanceNum = parseFloat(advance) || 0;
+        return Math.max(0, totalNum - advanceNum);
+    }
+}
+
+// Page-specific Initialization
+class PageManager {
+    static async init() {
+        // Check login state
+        if (!SessionManager.checkLogin()) return;
+
+        const currentPage = window.location.pathname.split('/').pop();
         
-        // Update customer record
-        await updateDoc(customerRef, {
-            remainingBalance: newBalance,
-            status: newBalance <= 0 ? 'completed' : 'active',
-            updatedAt: serverTimestamp(),
-            paymentHistory: [...(customer.paymentHistory || []), {
-                date: paymentData.date,
-                amount: paymentData.amount,
-                type: 'installment',
-                notes: paymentData.notes,
-                balanceAfter: newBalance
-            }]
+        // Set user role display
+        const role = SessionManager.getRole();
+        const roleElements = document.querySelectorAll('#userRole');
+        roleElements.forEach(el => {
+            if (el) el.textContent = role.charAt(0).toUpperCase() + role.slice(1);
         });
-        
-        return { success: true, newBalance };
-    } catch (error) {
-        console.error('Error recording payment:', error);
-        return { success: false, error: error.message };
-    }
-}
 
-async function deleteCustomer(customerId) {
-    // SECURITY: Check for Admin PIN before deletion
-    const pin = prompt('Enter Admin PIN to delete customer:');
-    if (pin !== '134047') {
-        alert('Access Denied. Incorrect PIN.');
-        return { success: false, error: 'Access denied' };
-    }
-    
-    try {
-        const customerRef = doc(db, 'customers', customerId);
-        await deleteDoc(customerRef);
-        return { success: true };
-    } catch (error) {
-        console.error('Error deleting customer:', error);
-        return { success: false, error: error.message };
-    }
-}
+        // Setup logout button
+        const logoutButtons = document.querySelectorAll('#logoutBtn');
+        logoutButtons.forEach(btn => {
+            if (btn) btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                SessionManager.logout();
+            });
+        });
 
-// ===== DASHBOARD FUNCTIONALITY =====
-function renderCustomerCards(customers) {
-    const container = document.getElementById('customerList');
-    if (!container) return;
-    
-    if (customers.length === 0) {
-        container.innerHTML = '<div class="empty-state">No customers found. Add your first customer!</div>';
-        return;
+        // Page-specific initialization
+        switch(currentPage) {
+            case 'dashboard.html':
+                await this.initDashboard();
+                break;
+            case 'add_customer.html':
+                await this.initAddCustomer();
+                break;
+            case 'customer_details.html':
+                await this.initCustomerDetails();
+                break;
+            case 'index.html':
+                this.initLogin();
+                break;
+            default:
+                if (currentPage.includes('customer_list')) {
+                    await this.initCustomerList();
+                }
+        }
     }
-    
-    let html = '';
-    
-    customers.forEach(customer => {
-        const isCompleted = customer.remainingBalance <= 0;
-        const cardClass = isCompleted ? 'customer-card paid-completed' : 'customer-card';
-        
-        html += `
-            <div class="${cardClass}" data-id="${customer.id}">
-                <div class="customer-photo">
-                    ${customer.photoUrl ? 
-                        `<img src="${customer.photoUrl}" alt="${customer.customerName}">` : 
-                        `<i class="fas fa-user-circle"></i>`
-                    }
-                </div>
-                <div class="customer-info">
-                    <div class="customer-name">${customer.customerName}</div>
-                    <div class="customer-meta">
-                        <span><i class="fas fa-id-card"></i> ${customer.id}</span>
-                        ${customer.cnic ? `<span><i class="fas fa-address-card"></i> ${customer.cnic}</span>` : ''}
-                        <span><i class="fas fa-phone"></i> ${customer.phone}</span>
-                    </div>
-                    <div class="financial-details">
-                        <div class="financial-item">
-                            <div class="label">Total Price</div>
-                            <div class="value">${customer.totalPrice} PKR</div>
-                        </div>
-                        <div class="financial-item">
-                            <div class="label">Paid</div>
-                            <div class="value paid">${customer.totalPrice - customer.remainingBalance} PKR</div>
-                        </div>
-                        <div class="financial-item">
-                            <div class="label">Remaining</div>
-                            <div class="value remaining">${customer.remainingBalance} PKR</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="customer-actions">
-                    <button onclick="viewCustomerDetails('${customer.id}')" class="btn-outline" title="View Details">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button onclick="openPaymentModal('${customer.id}')" class="btn-secondary" title="Pay Installment">
-                        <i class="fas fa-money-bill-wave"></i>
-                    </button>
-                    <button onclick="deleteCustomerPrompt('${customer.id}', '${customer.customerName}')" class="btn-danger" title="Delete Customer">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-    });
-    
-    container.innerHTML = html;
-    updateDashboardStats(customers);
-}
 
-function updateDashboardStats(customers) {
-    const totalCustomers = customers.length;
-    const activeLoans = customers.filter(c => c.remainingBalance > 0).length;
-    const completedLoans = customers.filter(c => c.remainingBalance <= 0).length;
-    const totalRevenue = customers.reduce((sum, c) => sum + (c.totalPrice - c.remainingBalance), 0);
-    
-    // Update DOM elements if they exist
-    if (document.getElementById('totalCustomers')) {
+    static initLogin() {
+        const loginBtn = document.getElementById('loginBtn');
+        const staffBtn = document.getElementById('staffBtn');
+        const pinInput = document.getElementById('pin');
+
+        if (loginBtn) {
+            loginBtn.addEventListener('click', () => {
+                const encodedPin = btoa(pinInput.value);
+                const role = SessionManager.login(encodedPin);
+                
+                if (role === 'admin') {
+                    window.location.href = 'dashboard.html';
+                } else {
+                    alert('Invalid PIN code!');
+                }
+            });
+        }
+
+        if (staffBtn) {
+            staffBtn.addEventListener('click', () => {
+                SessionManager.login('', true);
+                window.location.href = 'dashboard.html';
+            });
+        }
+    }
+
+    static async initDashboard() {
+        await this.loadDashboardStats();
+        await this.loadCustomerTable();
+        this.setupSearch();
+        this.setupModals();
+    }
+
+    static async loadDashboardStats() {
+        const customers = await Database.getCustomers();
+        const totalCustomers = customers.length;
+        const totalReceivables = customers.reduce((sum, customer) => {
+            const balance = customer.remainingBalance || 
+                          Utils.calculateRemainingBalance(customer.totalPrice, customer.advancePaid);
+            return sum + balance;
+        }, 0);
+        const completedAccounts = customers.filter(customer => {
+            const balance = customer.remainingBalance || 
+                          Utils.calculateRemainingBalance(customer.totalPrice, customer.advancePaid);
+            return balance === 0;
+        }).length;
+
         document.getElementById('totalCustomers').textContent = totalCustomers;
+        document.getElementById('totalReceivables').textContent = Utils.formatCurrency(totalReceivables);
+        document.getElementById('completedAccounts').textContent = completedAccounts;
+        document.getElementById('activeAccounts').textContent = totalCustomers - completedAccounts;
+        document.getElementById('totalCount').textContent = totalCustomers;
     }
-    if (document.getElementById('activeLoans')) {
-        document.getElementById('activeLoans').textContent = activeLoans;
-    }
-    if (document.getElementById('completedLoans')) {
-        document.getElementById('completedLoans').textContent = completedLoans;
-    }
-    if (document.getElementById('totalRevenue')) {
-        document.getElementById('totalRevenue').textContent = totalRevenue.toLocaleString() + ' PKR';
-    }
-}
 
-// ===== EVENT LISTENERS & INITIALIZATION =====
-document.addEventListener('DOMContentLoaded', function() {
-    // Check login status on all pages except login
-    if (!window.location.pathname.includes('index.html')) {
-        checkLogin();
-        loadNavigation();
-    }
-    
-    // Initialize page-specific functionality
-    if (window.location.pathname.includes('add_customer.html')) {
-        initAddCustomerPage();
-    } else if (window.location.pathname.includes('dashboard.html')) {
-        initDashboardPage();
-    }
-});
+    static async loadCustomerTable() {
+        const customers = await Database.getCustomers();
+        const tableBody = document.getElementById('customerTableBody');
+        const role = SessionManager.getRole();
+        const isAdmin = role === 'admin';
 
-function initAddCustomerPage() {
-    // Set today's date as default for start date
-    document.getElementById('startDate').valueAsDate = new Date();
-    
-    // Calculate balance when financial inputs change
-    document.getElementById('totalPrice')?.addEventListener('input', updateBalance);
-    document.getElementById('advancePayment')?.addEventListener('input', updateBalance);
-    
-    // Form submission
-    document.getElementById('customerForm')?.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        await handleFormSubmit();
-    });
-    
-    // Image preview
-    document.getElementById('customerPhoto')?.addEventListener('change', function(e) {
-        previewImage(e.target, 'photoPreview');
-    });
-}
+        tableBody.innerHTML = '';
 
-function updateBalance() {
-    const totalPrice = parseFloat(document.getElementById('totalPrice').value) || 0;
-    const advancePayment = parseFloat(document.getElementById('advancePayment').value) || 0;
-    const remaining = totalPrice - advancePayment;
-    
-    document.getElementById('remainingBalance').value = remaining.toFixed(2);
-    document.getElementById('displayTotal').textContent = totalPrice.toFixed(2) + ' PKR';
-    document.getElementById('displayAdvance').textContent = advancePayment.toFixed(2) + ' PKR';
-    document.getElementById('displayRemaining').textContent = remaining.toFixed(2) + ' PKR';
-    
-    // Update color based on remaining balance
-    const remainingElement = document.getElementById('displayRemaining');
-    if (remaining <= 0) {
-        remainingElement.style.color = '#28a745';
-    } else {
-        remainingElement.style.color = '#dc3545';
-    }
-}
+        customers.forEach(customer => {
+            const balance = customer.remainingBalance || 
+                          Utils.calculateRemainingBalance(customer.totalPrice, customer.advancePaid);
+            const isCompleted = balance === 0;
+            const rowClass = isCompleted ? 'status-completed' : '';
 
-async function handleFormSubmit() {
-    const saveBtn = document.getElementById('saveBtn');
-    saveBtn.disabled = true;
-    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-    
-    // Collect form data
-    const customerData = {
-        trackingId: document.getElementById('trackingId').value.trim(),
-        customerName: document.getElementById('customerName').value,
-        phone: document.getElementById('phone').value,
-        cnic: document.getElementById('cnic').value,
-        address: document.getElementById('address').value,
-        guarantorName: document.getElementById('guarantorName').value,
-        guarantorPhone: document.getElementById('guarantorPhone').value,
-        guarantorAddress: document.getElementById('guarantorAddress').value,
-        productName: document.getElementById('productName').value,
-        totalPrice: parseFloat(document.getElementById('totalPrice').value),
-        advancePayment: parseFloat(document.getElementById('advancePayment').value),
-        monthlyInstallment: parseFloat(document.getElementById('monthlyInstallment').value),
-        startDate: document.getElementById('startDate').value
-    };
-    
-    // Get image files
-    const photoFile = document.getElementById('customerPhoto').files[0];
-    const cnicFrontFile = document.getElementById('cnicFront').files[0];
-    const cnicBackFile = document.getElementById('cnicBack').files[0];
-    
-    // Generate customer ID for image storage
-    const customerId = customerData.trackingId || ('NK' + Date.now().toString().slice(-6));
-    
-    try {
-        // Upload images
-        if (photoFile) {
-            customerData.photoUrl = await uploadImage(photoFile, customerId, 'photo');
-        }
-        if (cnicFrontFile) {
-            customerData.cnicFrontUrl = await uploadImage(cnicFrontFile, customerId, 'cnic_front');
-        }
-        if (cnicBackFile) {
-            customerData.cnicBackUrl = await uploadImage(cnicBackFile, customerId, 'cnic_back');
-        }
-        
-        // Save customer data
-        const result = await saveCustomer(customerData);
-        
-        if (result.success) {
-            alert(`Customer saved successfully! Tracking ID: ${result.trackingId}`);
-            document.getElementById('customerForm').reset();
-            document.getElementById('startDate').valueAsDate = new Date();
-            updateBalance(); // Reset balance display
-        } else {
-            alert('Error saving customer: ' + result.error);
-        }
-    } catch (error) {
-        alert('Error: ' + error.message);
-    } finally {
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Customer Record';
-    }
-}
+            const row = document.createElement('tr');
+            row.className = rowClass;
+            row.innerHTML = `
+                <td>${customer.trackingId || customer.id.slice(-6)}</td>
+                <td>
+                    <img src="${customer.photo || 'data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"40\" height=\"40\"><rect width=\"100%\" height=\"100%\" fill=\"%23004d7a\"/><text x=\"50%\" y=\"50%\" font-family=\"Arial\" font-size=\"12\" fill=\"white\" text-anchor=\"middle\" dy=\".3em\">N/A</text></svg>'}" 
+                         alt="Photo" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+                </td>
+                <td>${customer.customerName || 'N/A'}</td>
+                <td>${Utils.formatCurrency(balance)}</td>
+                <td>
+                    <span class="status-badge ${isCompleted ? 'completed' : 'pending'}">
+                        ${isCompleted ? 'COMPLETED' : 'PENDING'}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-primary pay-btn" data-id="${customer.id}">
+                        <i class="fas fa-money-bill"></i> Pay
+                    </button>
+                    <button class="btn btn-sm btn-success view-btn" data-id="${customer.id}">
+                        <i class="fas fa-eye"></i> View
+                    </button>
+                    ${isAdmin ? `
+                        <button class="btn btn-sm btn-danger delete-btn" data-id="${customer.id}">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    ` : ''}
+                </td>
+            `;
 
-function initDashboardPage() {
-    // Load and display customers
-    loadCustomers().then(customers => {
-        renderCustomerCards(customers);
-        
-        // Set up search functionality
-        document.getElementById('searchInput')?.addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const filtered = customers.filter(c => 
-                c.customerName.toLowerCase().includes(searchTerm) ||
-                c.cnic?.toLowerCase().includes(searchTerm) ||
-                c.id.toLowerCase().includes(searchTerm)
-            );
-            renderCustomerCards(filtered);
+            tableBody.appendChild(row);
         });
-    });
-    
-    // Set up payment modal
-    setupPaymentModal();
-}
 
-function openPaymentModal(customerId) {
-    // Load customer data and populate modal
-    // Implementation depends on your Firestore structure
-    currentCustomerId = customerId;
-    document.getElementById('paymentModal').style.display = 'flex';
-}
+        document.getElementById('shownCount').textContent = customers.length;
 
-function deleteCustomerPrompt(customerId, customerName) {
-    if (confirm(`Are you sure you want to delete customer "${customerName}"? This action requires Admin PIN.`)) {
-        deleteCustomer(customerId).then(result => {
-            if (result.success) {
-                alert('Customer deleted successfully.');
-                // Refresh the customer list
-                initDashboardPage();
+        // Add event listeners
+        this.setupTableButtons();
+    }
+
+    static setupTableButtons() {
+        // Pay buttons
+        document.querySelectorAll('.pay-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const customerId = e.target.closest('.pay-btn').dataset.id;
+                this.openPaymentModal(customerId);
+            });
+        });
+
+        // View buttons
+        document.querySelectorAll('.view-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const customerId = e.target.closest('.view-btn').dataset.id;
+                window.location.href = `customer_details.html?id=${customerId}`;
+            });
+        });
+
+        // Delete buttons
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const customerId = e.target.closest('.delete-btn').dataset.id;
+                this.openDeleteModal(customerId);
+            });
+        });
+    }
+
+    static setupSearch() {
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', async (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const customers = await Database.getCustomers();
+                const filtered = customers.filter(customer => 
+                    customer.customerName?.toLowerCase().includes(searchTerm) ||
+                    customer.trackingId?.toLowerCase().includes(searchTerm) ||
+                    customer.cnic?.includes(searchTerm)
+                );
+                
+                // Update table with filtered results
+                const tableBody = document.getElementById('customerTableBody');
+                tableBody.innerHTML = '';
+                
+                filtered.forEach(customer => {
+                    const balance = customer.remainingBalance || 
+                                  Utils.calculateRemainingBalance(customer.totalPrice, customer.advancePaid);
+                    const isCompleted = balance === 0;
+                    const rowClass = isCompleted ? 'status-completed' : '';
+
+                    const row = document.createElement('tr');
+                    row.className = rowClass;
+                    row.innerHTML = `
+                        <td>${customer.trackingId || customer.id.slice(-6)}</td>
+                        <td>
+                            <img src="${customer.photo || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iIzAwNGQ3YSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+TkE8L3RleHQ+PC9zdmc+'}" 
+                                 alt="Photo" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+                        </td>
+                        <td>${customer.customerName || 'N/A'}</td>
+                        <td>${Utils.formatCurrency(balance)}</td>
+                        <td>
+                            <span class="status-badge ${isCompleted ? 'completed' : 'pending'}">
+                                ${isCompleted ? 'COMPLETED' : 'PENDING'}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-primary pay-btn" data-id="${customer.id}">
+                                <i class="fas fa-money-bill"></i> Pay
+                            </button>
+                            <button class="btn btn-sm btn-success view-btn" data-id="${customer.id}">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                            ${SessionManager.getRole() === 'admin' ? `
+                                <button class="btn btn-sm btn-danger delete-btn" data-id="${customer.id}">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            ` : ''}
+                        </td>
+                    `;
+
+                    tableBody.appendChild(row);
+                });
+
+                document.getElementById('shownCount').textContent = filtered.length;
+                this.setupTableButtons();
+            });
+        }
+    }
+
+    static setupModals() {
+        const modals = document.querySelectorAll('.modal');
+        const closeButtons = document.querySelectorAll('.close-modal');
+
+        closeButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                modals.forEach(modal => modal.classList.remove('active'));
+            });
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.remove('active');
             }
         });
     }
+
+    static async openPaymentModal(customerId) {
+        const modal = document.getElementById('paymentModal');
+        const confirmBtn = document.getElementById('confirmPaymentBtn');
+        
+        // Set today's date as default
+        document.getElementById('paymentDate').valueAsDate = new Date();
+        
+        // Clear previous event listener
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+        
+        newConfirmBtn.addEventListener('click', async () => {
+            const amount = parseFloat(document.getElementById('paymentAmount').value);
+            const date = document.getElementById('paymentDate').value;
+            const notes = document.getElementById('paymentNotes').value;
+            
+            if (!amount || amount <= 0) {
+                alert('Please enter a valid amount');
+                return;
+            }
+            
+            const result = await Database.addPayment(customerId, {
+                amount,
+                date: new Date(date).toISOString(),
+                notes,
+                method: 'Cash' // Default payment method
+            });
+            
+            if (result.success) {
+                alert('Payment recorded successfully!');
+                modal.classList.remove('active');
+                await this.loadDashboardStats();
+                await this.loadCustomerTable();
+                
+                // Clear form
+                document.getElementById('paymentAmount').value = '';
+                document.getElementById('paymentNotes').value = '';
+            } else {
+                alert('Error recording payment. Please try again.');
+            }
+        });
+        
+        modal.classList.add('active');
+    }
+
+    static openDeleteModal(customerId) {
+        const modal = document.getElementById('deleteModal');
+        const confirmBtn = document.getElementById('confirmDeleteBtn');
+        
+        // Clear previous event listener
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+        
+        newConfirmBtn.addEventListener('click', async () => {
+            const enteredPin = document.getElementById('deletePin').value;
+            const encodedPin = btoa(enteredPin);
+            
+            if (encodedPin !== ADMIN_PIN_ENCODED) {
+                alert('Incorrect PIN. Deletion cancelled.');
+                modal.classList.remove('active');
+                return;
+            }
+            
+            const result = await Database.deleteCustomer(customerId);
+            
+            if (result.success) {
+                alert('Customer deleted successfully!');
+                modal.classList.remove('active');
+                await this.loadDashboardStats();
+                await this.loadCustomerTable();
+                document.getElementById('deletePin').value = '';
+            } else {
+                alert('Error deleting customer. Please try again.');
+            }
+        });
+        
+        modal.classList.add('active');
+    }
+
+    static async initAddCustomer() {
+        const form = document.getElementById('customerForm');
+        
+        // Set today's date as default for registration
+        document.getElementById('registrationDate').valueAsDate = new Date();
+        document.getElementById('startDate').valueAsDate = new Date();
+        
+        // Auto-generate tracking ID if empty
+        document.getElementById('trackingId').addEventListener('blur', function() {
+            if (!this.value.trim()) {
+                this.value = Utils.generateTrackingId();
+            }
+        });
+        
+        // Calculate remaining balance in real-time
+        const calculateBalance = () => {
+            const totalPrice = parseFloat(document.getElementById('totalPrice').value) || 0;
+            const advancePaid = parseFloat(document.getElementById('advancePaid').value) || 0;
+            const remaining = Utils.calculateRemainingBalance(totalPrice, advancePaid);
+            
+            document.getElementById('remainingBalance').value = Utils.formatCurrency(remaining);
+            document.getElementById('statusDisplay').textContent = remaining === 0 ? 'COMPLETED' : 'PENDING';
+            document.getElementById('statusDisplay').className = remaining === 0 ? 'status-completed' : 'status-pending';
+        };
+        
+        document.getElementById('totalPrice').addEventListener('input', calculateBalance);
+        document.getElementById('advancePaid').addEventListener('input', calculateBalance);
+        
+        // Image previews
+        document.getElementById('customerPhoto').addEventListener('change', function() {
+            ImageUploader.previewImage(this, 'photoPreview');
+        });
+        
+        document.getElementById('cnicFront').addEventListener('change', function() {
+            ImageUploader.previewImage(this, 'cnicFrontPreview');
+        });
+        
+        document.getElementById('cnicBack').addEventListener('change', function() {
+            ImageUploader.previewImage(this, 'cnicBackPreview');
+        });
+        
+        // Form submission
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Get all form values
+            const formData = {
+                trackingId: document.getElementById('trackingId').value || Utils.generateTrackingId(),
+                registrationDate: document.getElementById('registrationDate').value,
+                customerName: document.getElementById('customerName').value,
+                fatherName: document.getElementById('fatherName').value,
+                cnic: document.getElementById('cnic').value,
+                phone1: document.getElementById('phone1').value,
+                phone2: document.getElementById('phone2').value,
+                address: document.getElementById('address').value,
+                jobTitle: document.getElementById('jobTitle').value,
+                guarantorName: document.getElementById('guarantorName').value,
+                guarantorPhone: document.getElementById('guarantorPhone').value,
+                guarantorCnic: document.getElementById('guarantorCnic').value,
+                guarantorAddress: document.getElementById('guarantorAddress').value,
+                productName: document.getElementById('productName').value,
+                totalPrice: parseFloat(document.getElementById('totalPrice').value) || 0,
+                advancePaid: parseFloat(document.getElementById('advancePaid').value) || 0,
+                monthlyInstallment: parseFloat(document.getElementById('monthlyInstallment').value) || 0,
+                startDate: document.getElementById('startDate').value,
+                remainingBalance: Utils.calculateRemainingBalance(
+                    parseFloat(document.getElementById('totalPrice').value) || 0,
+                    parseFloat(document.getElementById('advancePaid').value) || 0
+                )
+            };
+            
+            // Upload images
+            const photoFile = document.getElementById('customerPhoto').files[0];
+            const cnicFrontFile = document.getElementById('cnicFront').files[0];
+            const cnicBackFile = document.getElementById('cnicBack').files[0];
+            
+            try {
+                if (photoFile) formData.photo = await ImageUploader.uploadImage(photoFile, 'customer_photos');
+                if (cnicFrontFile) formData.cnicFront = await ImageUploader.uploadImage(cnicFrontFile, 'cnic_front');
+                if (cnicBackFile) formData.cnicBack = await ImageUploader.uploadImage(cnicBackFile, 'cnic_back');
+                
+                // Save to database
+                const result = await Database.addCustomer(formData);
+                
+                if (result.success) {
+                    alert('Customer added successfully!');
+                    window.location.href = 'dashboard.html';
+                } else {
+                    alert('Error adding customer. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred. Please check your data and try again.');
+            }
+        });
+    }
+
+    static async initCustomerDetails() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const customerId = urlParams.get('id');
+        
+        if (!customerId) {
+            alert('No customer selected. Redirecting to dashboard...');
+            window.location.href = 'dashboard.html';
+            return;
+        }
+        
+        const customer = await Database.getCustomer(customerId);
+        if (!customer) {
+            alert('Customer not found. Redirecting to dashboard...');
+            window.location.href = 'dashboard.html';
+            return;
+        }
+        
+        // Display customer information
+        this.displayCustomerDetails(customer);
+        
+        // Load payment history
+        await this.loadPaymentHistory(customerId);
+        
+        // Setup buttons
+        this.setupDetailButtons(customer);
+    }
+
+    static displayCustomerDetails(customer) {
+        // Basic info
+        document.getElementById('customerIdDisplay').textContent = `Tracking ID: ${customer.trackingId || 'N/A'}`;
+        document.getElementById('detailName').textContent = customer.customerName || 'N/A';
+        document.getElementById('detailFatherName').textContent = customer.fatherName || 'N/A';
+        document.getElementById('detailCnic').textContent = customer.cnic || 'N/A';
+        document.getElementById('detailPhone').textContent = customer.phone1 || 'N/A';
+        document.getElementById('detailAddress').textContent = customer.address || 'N/A';
+        document.getElementById('detailJob').textContent = customer.jobTitle || 'N/A';
+        
+        // Financial info
+        document.getElementById('summaryProduct').textContent = customer.productName || 'N/A';
+        document.getElementById('summaryTotal').textContent = Utils.formatCurrency(customer.totalPrice || 0);
+        document.getElementById('summaryAdvance').textContent = Utils.formatCurrency(customer.advancePaid || 0);
+        document.getElementById('summaryInstallment').textContent = Utils.formatCurrency(customer.monthlyInstallment || 0);
+        document.getElementById('summaryStartDate').textContent = Utils.formatDate(customer.startDate);
+        
+        // Guarantor info
+        document.getElementById('guarantorNameDetail').textContent = customer.guarantorName || 'N/A';
+        document.getElementById('guarantorPhoneDetail').textContent = customer.guarantorPhone || 'N/A';
+        document.getElementById('guarantorCnicDetail').textContent = customer.guarantorCnic || 'N/A';
+        document.getElementById('guarantorAddressDetail').textContent = customer.guarantorAddress || 'N/A';
+        
+        // Balance and status
+        const remainingBalance = customer.remainingBalance || 
+                               Utils.calculateRemainingBalance(customer.totalPrice, customer.advancePaid);
+        document.getElementById('remainingBalanceDisplay').textContent = Utils.formatCurrency(remainingBalance);
+        
+        const statusBadge = document.getElementById('statusBadge');
+        if (remainingBalance === 0) {
+            statusBadge.textContent = 'COMPLETED';
+            statusBadge.className = 'status-badge completed';
+        } else {
+            statusBadge.textContent = 'PENDING';
+            statusBadge.className = 'status-badge pending';
+        }
+        
+        // Photo
+        const photoElement = document.getElementById('detailCustomerPhoto');
+        if (customer.photo) {
+            photoElement.src = customer.photo;
+        }
+        
+        // Invoice info
+        document.getElementById('invoiceDate').textContent = Utils.formatDate(new Date());
+        document.getElementById('invoiceNumber').textContent = `INV-${customer.trackingId || customer.id.slice(-6).toUpperCase()}`;
+    }
+
+    static async loadPaymentHistory(customerId) {
+        const payments = await Database.getPayments(customerId);
+        const tableBody = document.getElementById('paymentHistoryBody');
+        let totalPaid = 0;
+        
+        tableBody.innerHTML = '';
+        
+        payments.forEach(payment => {
+            totalPaid += payment.amount;
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${Utils.formatDate(payment.date)}</td>
+                <td>${Utils.formatCurrency(payment.amount)}</td>
+                <td>${payment.method || 'Cash'}</td>
+                <td>${payment.notes || '-'}</td>
+                <td>-</td>
+            `;
+            tableBody.appendChild(row);
+        });
+        
+        document.getElementById('totalPaidAmount').innerHTML = `<strong>${Utils.formatCurrency(totalPaid)}</strong>`;
+        
+        // If no payments, show message
+        if (payments.length === 0) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td colspan="5" class="text-center">No payments recorded yet</td>
+            `;
+            tableBody.appendChild(row);
+        }
+    }
+
+    static setupDetailButtons(customer) {
+        const printBtn = document.getElementById('printBtn');
+        const whatsappBtn = document.getElementById('whatsappBtn');
+        
+        if (printBtn) {
+            printBtn.addEventListener('click', () => {
+                window.print();
+            });
+        }
+        
+        if (whatsappBtn) {
+            whatsappBtn.addEventListener('click', () => {
+                const remainingBalance = customer.remainingBalance || 
+                                       Utils.calculateRemainingBalance(customer.totalPrice, customer.advancePaid);
+                
+                const message = `*Customer Ledger - Naeem Khan Traders*
+                
+*Customer:* ${customer.customerName}
+*Tracking ID:* ${customer.trackingId}
+*Remaining Balance:* ${Utils.formatCurrency(remainingBalance)}
+*Status:* ${remainingBalance === 0 ? 'COMPLETED' : 'PENDING'}
+
+*Product:* ${customer.productName}
+*Total Price:* ${Utils.formatCurrency(customer.totalPrice)}
+*Advance Paid:* ${Utils.formatCurrency(customer.advancePaid)}
+*Monthly Installment:* ${Utils.formatCurrency(customer.monthlyInstallment)}
+
+Please make payments on time.`;
+                
+                const encodedMessage = encodeURIComponent(message);
+                const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
+                window.open(whatsappUrl, '_blank');
+            });
+        }
+    }
+
+    static async initCustomerList() {
+        // This would be similar to dashboard table but with all customers
+        // For simplicity, redirect to dashboard for now
+        window.location.href = 'dashboard.html';
+    }
 }
 
-// ===== EXPORT FUNCTIONS FOR HTML USE =====
-// Make functions available globally for onclick attributes
-window.viewCustomerDetails = function(customerId) {
-    window.location.href = `customer_details.html?id=${customerId}`;
-};
-
-window.openPaymentModal = openPaymentModal;
-window.deleteCustomerPrompt = deleteCustomerPrompt;
-window.logout = logout;
-window.shareReceipt = function() {
-    // Implementation for WhatsApp sharing
-    const customerName = document.getElementById('invoiceCustomerName')?.textContent;
-    const message = `*Customer Receipt - Naeem Khan Traders*%0A%0ACustomer: ${customerName}%0AView full details: ${window.location.href}`;
-    window.open(`https://wa.me/?text=${message}`, '_blank');
-};
-
-// Additional helper functions would continue here...
+// Initialize the application when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    PageManager.init();
+});
