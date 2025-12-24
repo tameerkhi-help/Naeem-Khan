@@ -3,172 +3,242 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Customer - NK Traders</title>
+    <title>Add Customer - Naeem Khan Traders</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <!-- Navigation will be loaded by script.js -->
-    <div id="navbar"></div>
-    
     <div class="container">
-        <div class="page-header">
-            <h1><i class="fas fa-user-plus"></i> Add New Customer</h1>
-            <p>Enter details from paper card or for new customer.</p>
-        </div>
-        
-        <form id="customerForm">
-            <!-- Section 1: Tracking & Basic Info -->
-            <div class="form-section">
-                <h2><i class="fas fa-id-card"></i> Tracking & Basic Information</h2>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="trackingId">Tracking ID</label>
-                        <input type="text" id="trackingId" placeholder="Enter ID from old card (or leave blank to auto-generate)">
-                        <small>Leave blank to generate new ID automatically</small>
-                    </div>
-                    <div class="form-group">
-                        <label for="customerName">Customer Name *</label>
-                        <input type="text" id="customerName" required>
-                    </div>
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-store"></i>
+                    <h2>Naeem Khan Traders</h2>
                 </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="phone">Phone Number *</label>
-                        <input type="tel" id="phone" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="cnic">CNIC Number</label>
-                        <input type="text" id="cnic" placeholder="XXXXX-XXXXXXX-X">
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="address">Address</label>
-                    <textarea id="address" rows="2"></textarea>
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="userRole">Admin</span>
                 </div>
             </div>
             
-            <!-- Section 2: Guarantor Details -->
-            <div class="form-section">
-                <h2><i class="fas fa-user-shield"></i> Guarantor Details</h2>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="guarantorName">Guarantor Name</label>
-                        <input type="text" id="guarantorName">
-                    </div>
-                    <div class="form-group">
-                        <label for="guarantorPhone">Guarantor Phone</label>
-                        <input type="tel" id="guarantorPhone">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="guarantorAddress">Guarantor Address</label>
-                    <textarea id="guarantorAddress" rows="2"></textarea>
-                </div>
-            </div>
+            <ul class="sidebar-menu">
+                <li>
+                    <a href="dashboard.html">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="active">
+                    <a href="add_customer.html">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Add Customer</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="customer_list.html">
+                        <i class="fas fa-users"></i>
+                        <span>Customer List</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" id="logoutBtn">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </a>
+                </li>
+            </ul>
             
-            <!-- Section 3: Image Uploads -->
-            <div class="form-section">
-                <h2><i class="fas fa-images"></i> Customer Images</h2>
-                <div class="image-upload-container">
-                    <div class="upload-box">
-                        <i class="fas fa-camera"></i>
-                        <p>Customer Photo</p>
-                        <input type="file" id="customerPhoto" accept="image/*" capture="user">
-                        <div class="upload-preview" id="photoPreview"></div>
-                    </div>
-                    
-                    <div class="upload-box">
-                        <i class="fas fa-id-card"></i>
-                        <p>CNIC Front</p>
-                        <input type="file" id="cnicFront" accept="image/*" capture="environment">
-                        <div class="upload-preview" id="cnicFrontPreview"></div>
-                    </div>
-                    
-                    <div class="upload-box">
-                        <i class="fas fa-id-card"></i>
-                        <p>CNIC Back</p>
-                        <input type="file" id="cnicBack" accept="image/*" capture="environment">
-                        <div class="upload-preview" id="cnicBackPreview"></div>
-                    </div>
-                </div>
+            <div class="sidebar-footer">
+                <p>Version 1.0</p>
             </div>
-            
-            <!-- Section 4: Financial Details -->
-            <div class="form-section">
-                <h2><i class="fas fa-money-bill-wave"></i> Financial Details</h2>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="productName">Product Name *</label>
-                        <input type="text" id="productName" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="totalPrice">Total Price (PKR) *</label>
-                        <input type="number" id="totalPrice" required min="0">
-                    </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="main-header">
+                <div class="header-left">
+                    <h1><i class="fas fa-user-plus"></i> Add New Customer</h1>
                 </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="advancePayment">Advance Payment (PKR) *</label>
-                        <input type="number" id="advancePayment" required min="0">
-                    </div>
-                    <div class="form-group">
-                        <label for="monthlyInstallment">Monthly Installment (PKR) *</label>
-                        <input type="number" id="monthlyInstallment" required min="0">
-                    </div>
+                <div class="header-right">
+                    <button class="btn btn-secondary" onclick="window.location.href='dashboard.html'">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </button>
                 </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="startDate">Installment Start Date *</label>
-                        <input type="date" id="startDate" required>
+            </header>
+
+            <div class="content-card">
+                <form id="customerForm">
+                    <!-- Tracking Section -->
+                    <div class="form-section">
+                        <h3><i class="fas fa-id-card"></i> Tracking Information</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="trackingId">Tracking ID <small>(Leave blank to auto-generate)</small></label>
+                                <input type="text" id="trackingId" placeholder="Manual ID or Auto-generate">
+                            </div>
+                            <div class="form-group">
+                                <label for="registrationDate">Registration Date</label>
+                                <input type="date" id="registrationDate" required>
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Remaining Balance (Auto-calculated)</label>
-                        <input type="text" id="remainingBalance" readonly class="calculated-field">
+
+                    <!-- Personal Information -->
+                    <div class="form-section">
+                        <h3><i class="fas fa-user"></i> Personal Information</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="customerName">Full Name</label>
+                                <input type="text" id="customerName" placeholder="Enter full name">
+                            </div>
+                            <div class="form-group">
+                                <label for="fatherName">Father's Name</label>
+                                <input type="text" id="fatherName" placeholder="Enter father's name">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="cnic">CNIC Number</label>
+                                <input type="text" id="cnic" placeholder="XXXXX-XXXXXXX-X">
+                            </div>
+                            <div class="form-group">
+                                <label for="phone1">Phone 1</label>
+                                <input type="tel" id="phone1" placeholder="03XX-XXXXXXX">
+                            </div>
+                            <div class="form-group">
+                                <label for="phone2">Phone 2 (Optional)</label>
+                                <input type="tel" id="phone2" placeholder="03XX-XXXXXXX">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="address">Address</label>
+                                <textarea id="address" placeholder="Enter full address"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="jobTitle">Job Title</label>
+                                <input type="text" id="jobTitle" placeholder="Enter occupation">
+                            </div>
+                        </div>
                     </div>
-                </div>
-                
-                <!-- Live Calculation Display -->
-                <div class="calculation-summary">
-                    <h3><i class="fas fa-calculator"></i> Payment Summary</h3>
-                    <div class="summary-row">
-                        <span>Total Price:</span>
-                        <strong id="displayTotal">0 PKR</strong>
+
+                    <!-- Guarantor Information -->
+                    <div class="form-section">
+                        <h3><i class="fas fa-user-shield"></i> Guarantor Information</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="guarantorName">Guarantor Name</label>
+                                <input type="text" id="guarantorName" placeholder="Enter guarantor name">
+                            </div>
+                            <div class="form-group">
+                                <label for="guarantorPhone">Guarantor Phone</label>
+                                <input type="tel" id="guarantorPhone" placeholder="03XX-XXXXXXX">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="guarantorCnic">Guarantor CNIC</label>
+                                <input type="text" id="guarantorCnic" placeholder="XXXXX-XXXXXXX-X">
+                            </div>
+                            <div class="form-group">
+                                <label for="guarantorAddress">Guarantor Address</label>
+                                <textarea id="guarantorAddress" placeholder="Enter guarantor address"></textarea>
+                            </div>
+                        </div>
                     </div>
-                    <div class="summary-row">
-                        <span>Advance Paid:</span>
-                        <strong id="displayAdvance">0 PKR</strong>
+
+                    <!-- Image Uploads -->
+                    <div class="form-section">
+                        <h3><i class="fas fa-images"></i> Document Images</h3>
+                        <div class="form-row image-upload-row">
+                            <div class="image-upload-group">
+                                <label for="customerPhoto">
+                                    <i class="fas fa-camera"></i>
+                                    <span>Customer Photo</span>
+                                </label>
+                                <input type="file" id="customerPhoto" accept="image/*" capture="user">
+                                <div class="image-preview" id="photoPreview"></div>
+                            </div>
+                            
+                            <div class="image-upload-group">
+                                <label for="cnicFront">
+                                    <i class="fas fa-id-card"></i>
+                                    <span>CNIC Front</span>
+                                </label>
+                                <input type="file" id="cnicFront" accept="image/*" capture="environment">
+                                <div class="image-preview" id="cnicFrontPreview"></div>
+                            </div>
+                            
+                            <div class="image-upload-group">
+                                <label for="cnicBack">
+                                    <i class="fas fa-id-card"></i>
+                                    <span>CNIC Back</span>
+                                </label>
+                                <input type="file" id="cnicBack" accept="image/*" capture="environment">
+                                <div class="image-preview" id="cnicBackPreview"></div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="summary-row">
-                        <span>Remaining Balance:</span>
-                        <strong id="displayRemaining" class="remaining-amount">0 PKR</strong>
+
+                    <!-- Financial Information -->
+                    <div class="form-section">
+                        <h3><i class="fas fa-money-bill-wave"></i> Financial Information</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="productName">Product Name</label>
+                                <input type="text" id="productName" placeholder="Enter product name">
+                            </div>
+                            <div class="form-group">
+                                <label for="totalPrice">Total Price (₹)</label>
+                                <input type="number" id="totalPrice" placeholder="0">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="advancePaid">Advance Paid (₹)</label>
+                                <input type="number" id="advancePaid" placeholder="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="monthlyInstallment">Monthly Installment (₹)</label>
+                                <input type="number" id="monthlyInstallment" placeholder="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="startDate">Start Date</label>
+                                <input type="date" id="startDate">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Remaining Balance (₹)</label>
+                                <input type="text" id="remainingBalance" readonly class="balance-display">
+                            </div>
+                            <div class="form-group">
+                                <label>Status</label>
+                                <div id="statusDisplay" class="status-pending">Pending</div>
+                            </div>
+                        </div>
                     </div>
-                </div>
+
+                    <!-- Form Actions -->
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="window.location.href='dashboard.html'">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Customer
+                        </button>
+                    </div>
+                </form>
             </div>
-            
-            <!-- Form Actions -->
-            <div class="form-actions">
-                <button type="button" id="calculateBtn" class="btn-secondary">
-                    <i class="fas fa-calculator"></i> Calculate Balance
-                </button>
-                <button type="submit" id="saveBtn" class="btn-primary">
-                    <i class="fas fa-save"></i> Save Customer Record
-                </button>
-                <button type="button" id="clearBtn" class="btn-danger">
-                    <i class="fas fa-trash"></i> Clear Form
-                </button>
-            </div>
-        </form>
+        </main>
     </div>
-    
-    <script src="script.js"></script>
-    <script>
-        // This file requires functions from script.js
-        // The main form handling logic is in script.js
-    </script>
+
+    <script type="module" src="script.js"></script>
 </body>
 </html>
