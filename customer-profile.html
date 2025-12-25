@@ -5,79 +5,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Customer Profile</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="pb-24"> <div class="max-w-2xl mx-auto p-4 md:my-8" id="profile-content">
-        <a href="dashboard.html" class="inline-block mb-4 text-gray-400 hover:text-white no-print transition">
-            <i class="fas fa-arrow-left mr-2"></i> Back to Dashboard
-        </a>
-
+<body class="pb-24"> <div class="max-w-2xl mx-auto p-4 mt-4" id="profile-content">
+        <a href="dashboard.html" class="text-gray-400 mb-4 inline-block no-print hover:text-white">← Back to Dashboard</a>
+        
         <div class="glass-panel p-0 rounded-2xl overflow-hidden border border-gray-700">
-            <div class="bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 p-8 text-center relative overflow-hidden">
-                <div class="absolute top-0 left-0 w-24 h-24 bg-white/5 rounded-full -translate-x-10 -translate-y-10"></div>
-                <div class="absolute bottom-0 right-0 w-32 h-32 bg-white/5 rounded-full translate-x-10 translate-y-10"></div>
-
-                <img id="p-img" src="" class="w-28 h-28 rounded-full border-4 border-white/20 mx-auto shadow-2xl object-cover relative z-10">
-                <h1 id="p-name" class="text-2xl font-bold text-white mt-4 relative z-10">Loading Name...</h1>
-                <p id="p-phone" class="text-purple-200 relative z-10">Loading Phone...</p>
-                <div class="mt-2 text-xs text-gray-300 bg-black/20 inline-block px-3 py-1 rounded-full relative z-10">
-                    ID: <span id="p-id">...</span>
+            <div class="bg-gradient-to-r from-purple-900 to-blue-900 p-6 text-center">
+                <img id="p-img" src="" class="w-28 h-28 rounded-full border-4 border-white mx-auto object-cover bg-gray-800 shadow-xl">
+                <h1 id="p-name" class="text-2xl font-bold text-white mt-3">Loading...</h1>
+                <p id="p-phone" class="text-gray-300">...</p>
+            </div>
+            
+            <div class="grid grid-cols-3 bg-gray-800/80 p-4 text-center border-b border-gray-700">
+                <div>
+                    <p class="text-xs text-gray-400 uppercase">Total</p>
+                    <p id="p-total" class="font-bold text-white text-lg">0</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-400 uppercase">Paid</p>
+                    <p id="p-paid" class="font-bold text-green-400 text-lg">0</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-400 uppercase">Remaining</p>
+                    <p id="p-remaining" class="font-bold text-red-400 text-lg">0</p>
                 </div>
             </div>
-
-            <div class="grid grid-cols-3 divide-x divide-gray-700 bg-gray-800/80 backdrop-blur-sm border-b border-gray-700">
-                <div class="p-4 text-center">
-                    <p class="text-xs text-gray-400 uppercase tracking-wider">Total</p>
-                    <p id="p-total" class="font-bold text-white text-lg mt-1">0</p>
-                </div>
-                <div class="p-4 text-center">
-                    <p class="text-xs text-gray-400 uppercase tracking-wider">Paid</p>
-                    <p id="p-paid" class="font-bold text-green-400 text-lg mt-1">0</p>
-                </div>
-                <div class="p-4 text-center">
-                    <p class="text-xs text-gray-400 uppercase tracking-wider">Remaining</p>
-                    <p id="p-remaining" class="font-bold text-red-400 text-lg mt-1">0</p>
-                </div>
-            </div>
-
-            <div class="w-full bg-gray-900 h-3">
-                <div id="p-bar" class="bg-gradient-to-r from-green-500 to-emerald-400 h-3 transition-all duration-1000" style="width: 0%"></div>
+            
+            <div class="bg-gray-900 h-3 w-full">
+                <div id="p-bar" class="bg-green-500 h-3 transition-all duration-1000" style="width: 0%"></div>
             </div>
 
             <div class="p-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 text-sm">
-                    <div class="bg-gray-800/50 p-3 rounded-lg">
-                        <p class="text-gray-400 text-xs">Address</p>
-                        <p id="p-address" class="text-white font-medium mt-1 truncate">...</p>
-                    </div>
-                    <div class="bg-gray-800/50 p-3 rounded-lg">
-                        <p class="text-gray-400 text-xs">CNIC</p>
-                        <p id="p-cnic" class="text-white font-medium mt-1">...</p>
-                    </div>
-                    <div class="bg-gray-800/50 p-3 rounded-lg border-l-2 border-blue-500">
-                        <p class="text-gray-400 text-xs">Guarantor Name</p>
-                        <p id="p-g-name" class="text-white font-medium mt-1">...</p>
-                    </div>
-                    <div class="bg-gray-800/50 p-3 rounded-lg border-l-2 border-blue-500">
-                        <p class="text-gray-400 text-xs">Guarantor Phone</p>
-                        <p id="p-g-phone" class="text-white font-medium mt-1">...</p>
-                    </div>
+                <div class="grid grid-cols-2 gap-4 mb-6 text-sm bg-gray-800/50 p-4 rounded-xl">
+                    <div><p class="text-gray-500 text-xs">CNIC</p><p id="p-cnic" class="text-white font-medium">...</p></div>
+                    <div><p class="text-gray-500 text-xs">Address</p><p id="p-address" class="text-white font-medium truncate">...</p></div>
+                    <div><p class="text-gray-500 text-xs">Guarantor</p><p id="p-g-name" class="text-white font-medium">...</p></div>
+                    <div><p class="text-gray-500 text-xs">G. Phone</p><p id="p-g-phone" class="text-white font-medium">...</p></div>
                 </div>
 
-                <h3 class="text-sm font-bold text-gold uppercase mb-4 flex items-center">
-                    <i class="fas fa-history mr-2"></i> Payment Schedule
-                </h3>
+                <h3 class="font-bold text-gold mb-3 text-sm uppercase">Installment History</h3>
                 <div class="overflow-hidden rounded-lg border border-gray-700">
                     <table class="w-full text-left text-sm">
                         <thead class="bg-gray-900 text-gray-400">
                             <tr>
-                                <th class="p-3">Due Date</th>
+                                <th class="p-3">Date</th>
                                 <th class="p-3">Amount</th>
-                                <th class="p-3 text-center">Status</th>
-                                <th class="p-3 text-center no-print">Action</th>
+                                <th class="p-3">Status</th>
+                                <th class="p-3 no-print">Action</th>
                             </tr>
                         </thead>
                         <tbody id="installment-rows" class="text-gray-300 divide-y divide-gray-800">
@@ -86,25 +63,21 @@
                 </div>
             </div>
             
-            <div class="text-center p-4 text-xs text-gray-500 bg-gray-900">
-                Generated by Naeem Khan Traders System
+            <div class="text-center p-2 text-xs text-gray-500 bg-gray-900">
+                Naeem Khan Traders - System Generated Report
             </div>
         </div>
     </div>
 
-    <div class="fixed bottom-0 left-0 right-0 p-4 bg-gray-900/90 backdrop-blur border-t border-gray-700 flex justify-center gap-4 z-50 no-print">
-        <button id="whatsapp-btn" class="flex-1 max-w-xs bg-green-600 hover:bg-green-500 text-white py-3 rounded-xl font-bold shadow-lg transition flex items-center justify-center">
-            <i class="fab fa-whatsapp text-xl mr-2"></i> Share
-        </button>
-        <button onclick="downloadPDF()" class="flex-1 max-w-xs bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-bold shadow-lg transition flex items-center justify-center">
-            <i class="fas fa-file-pdf text-xl mr-2"></i> Download PDF
-        </button>
+    <div class="fixed bottom-0 w-full bg-gray-900 p-4 flex gap-4 justify-center no-print border-t border-gray-800">
+        <button id="whatsapp-btn" class="bg-green-600 hover:bg-green-500 text-white px-6 py-3 rounded-xl font-bold flex-1 max-w-xs shadow-lg">Share WhatsApp</button>
+        <button onclick="downloadPDF()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-bold flex-1 max-w-xs shadow-lg">Download PDF</button>
     </div>
 
     <script type="module">
         import './script.js';
         window.addEventListener('load', () => {
-            setTimeout(window.loadProfile, 500); 
+            setTimeout(window.loadProfile, 1000); 
         });
     </script>
 </body>
