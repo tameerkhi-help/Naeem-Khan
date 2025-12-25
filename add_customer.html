@@ -4,241 +4,282 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Customer - Naeem Khan Traders</title>
-    <link rel="stylesheet" href="style.css">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 </head>
-<body>
-    <div class="container">
-        <!-- Sidebar -->
-        <nav class="sidebar">
-            <div class="sidebar-header">
-                <div class="logo">
-                    <i class="fas fa-store"></i>
-                    <h2>Naeem Khan Traders</h2>
-                </div>
-                <div class="user-info">
-                    <i class="fas fa-user-circle"></i>
-                    <span id="userRole">Admin</span>
-                </div>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 min-h-screen">
+    <!-- Navigation -->
+    <nav class="glass-nav p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <!-- Logo -->
+            <div class="flex items-center space-x-3">
+                <a href="dashboard.html" class="flex items-center space-x-3">
+                    <div class="logo-icon">
+                        <i class="fas fa-crown text-gold"></i>
+                    </div>
+                    <span class="text-xl font-bold text-white">Naeem Khan Traders</span>
+                </a>
+                <span class="px-3 py-1 bg-gold/20 text-gold text-sm rounded-full" id="userRoleBadge">Admin</span>
             </div>
-            
-            <ul class="sidebar-menu">
-                <li>
-                    <a href="dashboard.html">
-                        <i class="fas fa-tachometer-alt"></i>
-                        <span>Dashboard</span>
-                    </a>
-                </li>
-                <li class="active">
-                    <a href="add_customer.html">
-                        <i class="fas fa-user-plus"></i>
-                        <span>Add Customer</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="customer_list.html">
-                        <i class="fas fa-users"></i>
-                        <span>Customer List</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="#" id="logoutBtn">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>Logout</span>
-                    </a>
-                </li>
-            </ul>
-            
-            <div class="sidebar-footer">
-                <p>Version 1.0</p>
-            </div>
-        </nav>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <header class="main-header">
-                <div class="header-left">
-                    <h1><i class="fas fa-user-plus"></i> Add New Customer</h1>
+            <!-- Navigation Links -->
+            <div class="flex items-center space-x-4">
+                <a href="dashboard.html" 
+                   class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+                </a>
+                <button onclick="logout()" 
+                        class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
+                    <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mx-auto p-4 md:p-6 max-w-4xl">
+        <div class="glass-card p-6 md:p-8">
+            <!-- Header -->
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold text-white mb-2">Add New Customer</h1>
+                <p class="text-gray-400">Fill in the customer details below. All fields are required unless marked optional.</p>
+            </div>
+
+            <!-- Customer Form -->
+            <form id="customerForm" class="space-y-6">
+                <!-- Personal Information -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Customer Name -->
+                    <div>
+                        <label class="block text-gray-300 mb-2">
+                            Customer Name <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="customerName" required
+                               class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gold transition-colors"
+                               placeholder="John Doe">
+                    </div>
+
+                    <!-- CNIC -->
+                    <div>
+                        <label class="block text-gray-300 mb-2">
+                            CNIC Number <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="cnic" required maxlength="15"
+                               class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gold transition-colors"
+                               placeholder="42101-1234567-8"
+                               oninput="formatCNIC(this)">
+                    </div>
                 </div>
-                <div class="header-right">
-                    <button class="btn btn-secondary" onclick="window.location.href='dashboard.html'">
-                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Phone Number -->
+                    <div>
+                        <label class="block text-gray-300 mb-2">
+                            Phone Number <span class="text-red-500">*</span>
+                        </label>
+                        <input type="tel" id="phone" required
+                               class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gold transition-colors"
+                               placeholder="0300-1234567">
+                    </div>
+
+                    <!-- Address -->
+                    <div>
+                        <label class="block text-gray-300 mb-2">
+                            Address <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="address" required
+                               class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gold transition-colors"
+                               placeholder="House #123, Street 45, City">
+                    </div>
+                </div>
+
+                <!-- Product Information -->
+                <div class="pt-6 border-t border-gray-700">
+                    <h3 class="text-xl font-bold text-white mb-4">Product Information</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Product Name -->
+                        <div>
+                            <label class="block text-gray-300 mb-2">
+                                Product Name <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="productName" required
+                                   class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gold transition-colors"
+                                   placeholder="iPhone 14 Pro Max">
+                        </div>
+
+                        <!-- Product Price -->
+                        <div>
+                            <label class="block text-gray-300 mb-2">
+                                Product Price (PKR) <span class="text-red-500">*</span>
+                            </label>
+                            <input type="number" id="productPrice" required min="0"
+                                   class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gold transition-colors"
+                                   placeholder="350000"
+                                   onchange="calculateInstallments()">
+                        </div>
+
+                        <!-- Advance Payment -->
+                        <div>
+                            <label class="block text-gray-300 mb-2">
+                                Advance Payment (PKR) <span class="text-red-500">*</span>
+                            </label>
+                            <input type="number" id="advancePayment" required min="0"
+                                   class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gold transition-colors"
+                                   placeholder="50000"
+                                   onchange="calculateInstallments()">
+                        </div>
+
+                        <!-- Monthly Installment -->
+                        <div>
+                            <label class="block text-gray-300 mb-2">
+                                Monthly Installment (PKR) <span class="text-red-500">*</span>
+                            </label>
+                            <input type="number" id="monthlyInstallment" required min="0"
+                                   class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gold transition-colors"
+                                   placeholder="10000"
+                                   onchange="calculateRemaining()">
+                        </div>
+                    </div>
+
+                    <!-- Calculation Results -->
+                    <div class="mt-6 p-4 bg-gray-800/50 rounded-lg">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="text-center">
+                                <p class="text-gray-400 text-sm">Remaining Balance</p>
+                                <p class="text-2xl font-bold text-white" id="remainingBalance">₹0</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-gray-400 text-sm">Installments Required</p>
+                                <p class="text-2xl font-bold text-white" id="installmentsRequired">0</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-gray-400 text-sm">Completion Time</p>
+                                <p class="text-2xl font-bold text-white" id="completionTime">0 months</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Guarantor Information -->
+                <div class="pt-6 border-t border-gray-700">
+                    <h3 class="text-xl font-bold text-white mb-4">Guarantor Information</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Guarantor Name -->
+                        <div>
+                            <label class="block text-gray-300 mb-2">
+                                Guarantor Name <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="guarantorName" required
+                                   class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gold transition-colors"
+                                   placeholder="Jane Smith">
+                        </div>
+
+                        <!-- Guarantor Phone -->
+                        <div>
+                            <label class="block text-gray-300 mb-2">
+                                Guarantor Phone <span class="text-red-500">*</span>
+                            </label>
+                            <input type="tel" id="guarantorPhone" required
+                                   class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gold transition-colors"
+                                   placeholder="0300-7654321">
+                        </div>
+
+                        <!-- Guarantor CNIC -->
+                        <div>
+                            <label class="block text-gray-300 mb-2">
+                                Guarantor CNIC <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="guarantorCNIC" required maxlength="15"
+                                   class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gold transition-colors"
+                                   placeholder="42101-7654321-0"
+                                   oninput="formatCNIC(this)">
+                        </div>
+
+                        <!-- Guarantor Address -->
+                        <div>
+                            <label class="block text-gray-300 mb-2">
+                                Guarantor Address
+                            </label>
+                            <input type="text" id="guarantorAddress"
+                                   class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gold transition-colors"
+                                   placeholder="House #456, Street 78, City">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional Notes -->
+                <div>
+                    <label class="block text-gray-300 mb-2">Additional Notes</label>
+                    <textarea id="notes" rows="3"
+                              class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gold transition-colors"
+                              placeholder="Any additional information about the customer..."></textarea>
+                </div>
+
+                <!-- Start Date -->
+                <div>
+                    <label class="block text-gray-300 mb-2">
+                        Installment Start Date <span class="text-red-500">*</span>
+                    </label>
+                    <input type="date" id="startDate" required
+                           class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-gold transition-colors">
+                </div>
+
+                <!-- Submit Buttons -->
+                <div class="flex justify-end space-x-4 pt-6 border-t border-gray-700">
+                    <button type="button" onclick="window.history.back()"
+                            class="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="px-6 py-3 bg-gradient-to-r from-gold to-purple-600 hover:from-gold hover:to-purple-700 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
+                        <i class="fas fa-save mr-2"></i>Save Customer
                     </button>
                 </div>
-            </header>
-
-            <div class="content-card">
-                <form id="customerForm">
-                    <!-- Tracking Section -->
-                    <div class="form-section">
-                        <h3><i class="fas fa-id-card"></i> Tracking Information</h3>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="trackingId">Tracking ID <small>(Leave blank to auto-generate)</small></label>
-                                <input type="text" id="trackingId" placeholder="Manual ID or Auto-generate">
-                            </div>
-                            <div class="form-group">
-                                <label for="registrationDate">Registration Date</label>
-                                <input type="date" id="registrationDate" required>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Personal Information -->
-                    <div class="form-section">
-                        <h3><i class="fas fa-user"></i> Personal Information</h3>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="customerName">Full Name</label>
-                                <input type="text" id="customerName" placeholder="Enter full name">
-                            </div>
-                            <div class="form-group">
-                                <label for="fatherName">Father's Name</label>
-                                <input type="text" id="fatherName" placeholder="Enter father's name">
-                            </div>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="cnic">CNIC Number</label>
-                                <input type="text" id="cnic" placeholder="XXXXX-XXXXXXX-X">
-                            </div>
-                            <div class="form-group">
-                                <label for="phone1">Phone 1</label>
-                                <input type="tel" id="phone1" placeholder="03XX-XXXXXXX">
-                            </div>
-                            <div class="form-group">
-                                <label for="phone2">Phone 2 (Optional)</label>
-                                <input type="tel" id="phone2" placeholder="03XX-XXXXXXX">
-                            </div>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="address">Address</label>
-                                <textarea id="address" placeholder="Enter full address"></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label for="jobTitle">Job Title</label>
-                                <input type="text" id="jobTitle" placeholder="Enter occupation">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Guarantor Information -->
-                    <div class="form-section">
-                        <h3><i class="fas fa-user-shield"></i> Guarantor Information</h3>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="guarantorName">Guarantor Name</label>
-                                <input type="text" id="guarantorName" placeholder="Enter guarantor name">
-                            </div>
-                            <div class="form-group">
-                                <label for="guarantorPhone">Guarantor Phone</label>
-                                <input type="tel" id="guarantorPhone" placeholder="03XX-XXXXXXX">
-                            </div>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="guarantorCnic">Guarantor CNIC</label>
-                                <input type="text" id="guarantorCnic" placeholder="XXXXX-XXXXXXX-X">
-                            </div>
-                            <div class="form-group">
-                                <label for="guarantorAddress">Guarantor Address</label>
-                                <textarea id="guarantorAddress" placeholder="Enter guarantor address"></textarea>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Image Uploads -->
-                    <div class="form-section">
-                        <h3><i class="fas fa-images"></i> Document Images</h3>
-                        <div class="form-row image-upload-row">
-                            <div class="image-upload-group">
-                                <label for="customerPhoto">
-                                    <i class="fas fa-camera"></i>
-                                    <span>Customer Photo</span>
-                                </label>
-                                <input type="file" id="customerPhoto" accept="image/*" capture="user">
-                                <div class="image-preview" id="photoPreview"></div>
-                            </div>
-                            
-                            <div class="image-upload-group">
-                                <label for="cnicFront">
-                                    <i class="fas fa-id-card"></i>
-                                    <span>CNIC Front</span>
-                                </label>
-                                <input type="file" id="cnicFront" accept="image/*" capture="environment">
-                                <div class="image-preview" id="cnicFrontPreview"></div>
-                            </div>
-                            
-                            <div class="image-upload-group">
-                                <label for="cnicBack">
-                                    <i class="fas fa-id-card"></i>
-                                    <span>CNIC Back</span>
-                                </label>
-                                <input type="file" id="cnicBack" accept="image/*" capture="environment">
-                                <div class="image-preview" id="cnicBackPreview"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Financial Information -->
-                    <div class="form-section">
-                        <h3><i class="fas fa-money-bill-wave"></i> Financial Information</h3>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="productName">Product Name</label>
-                                <input type="text" id="productName" placeholder="Enter product name">
-                            </div>
-                            <div class="form-group">
-                                <label for="totalPrice">Total Price (₹)</label>
-                                <input type="number" id="totalPrice" placeholder="0">
-                            </div>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="advancePaid">Advance Paid (₹)</label>
-                                <input type="number" id="advancePaid" placeholder="0">
-                            </div>
-                            <div class="form-group">
-                                <label for="monthlyInstallment">Monthly Installment (₹)</label>
-                                <input type="number" id="monthlyInstallment" placeholder="0">
-                            </div>
-                            <div class="form-group">
-                                <label for="startDate">Start Date</label>
-                                <input type="date" id="startDate">
-                            </div>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Remaining Balance (₹)</label>
-                                <input type="text" id="remainingBalance" readonly class="balance-display">
-                            </div>
-                            <div class="form-group">
-                                <label>Status</label>
-                                <div id="statusDisplay" class="status-pending">Pending</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Form Actions -->
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" onclick="window.location.href='dashboard.html'">
-                            <i class="fas fa-times"></i> Cancel
-                        </button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Save Customer
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </main>
+            </form>
+        </div>
     </div>
 
-    <script type="module" src="script.js"></script>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-gold mx-auto"></div>
+            <p class="text-white mt-4">Saving Customer...</p>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="modal hidden">
+        <div class="modal-content max-w-md">
+            <div class="text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-500/20 mb-4">
+                    <i class="fas fa-check text-green-400 text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">Customer Added Successfully!</h3>
+                <p class="text-gray-300 mb-6">Customer has been added to the system.</p>
+                <div class="flex justify-center space-x-3">
+                    <button onclick="closeSuccessModal()"
+                            class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
+                        Add Another
+                    </button>
+                    <a href="dashboard.html"
+                       class="px-4 py-2 bg-gradient-to-r from-gold to-purple-600 hover:from-gold hover:to-purple-700 text-white font-bold rounded-lg transition-colors">
+                        Go to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="script.js"></script>
 </body>
 </html>
