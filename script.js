@@ -1,816 +1,812 @@
-// Firebase Configuration
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
-
+// Firebase Configuration (Replace with your own config)
 const firebaseConfig = {
-  apiKey: "AIzaSyCujiWEwr3657z7L6mI9xmIwMZjYJchoJc",
-  authDomain: "naeem-khan-f7d4f.firebaseapp.com",
-  projectId: "naeem-khan-f7d4f",
-  storageBucket: "naeem-khan-f7d4f.firebasestorage.app",
-  messagingSenderId: "20329827636",
-  appId: "1:20329827636:web:6bc934919ca09e683f2961",
-  measurementId: "G-DHCVE17PDS"
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_AUTH_DOMAIN",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_STORAGE_BUCKET",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const storage = getStorage(app);
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+const storage = firebase.storage();
 
-// Security: Base64 encoding for PIN (NOT visible plain text in code)
-const ADMIN_PIN_ENCODED = btoa("134047");
+// Global Variables
+let currentUser = null;
+let userRole = null;
+const ADMIN_PIN = '7860'; // Hardcoded PIN for admin actions
+let pendingAction = null; // Stores the action to perform after PIN verification
 
-// Session Management
-class SessionManager {
-    static checkLogin() {
-        const isLoggedIn = localStorage.getItem('isLoggedIn');
-        const currentPage = window.location.pathname.split('/').pop();
-        
-        if (!isLoggedIn && currentPage !== 'index.html') {
+// DOM Elements
+const pinModal = document.getElementById('pinModal');
+const pinInput = document.getElementById('pinInput');
+const pinError = document.getElementById('pinError');
+const loadingOverlay = document.getElementById('loadingOverlay');
+
+// Initialize based on current page
+document.addEventListener('DOMContentLoaded', function() {
+    const path = window.location.pathname;
+    const page = path.split('/').pop();
+    
+    // Check if user is logged in
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            currentUser = user;
+            initializePage(page);
+        } else if (page !== 'index.html' && !page.endsWith('/')) {
+            // Redirect to login if not authenticated
             window.location.href = 'index.html';
-            return false;
         }
-        
-        return true;
+    });
+    
+    // Initialize login page
+    if (page === 'index.html' || page === '' || page.endsWith('/')) {
+        initializeLoginPage();
     }
+});
 
-    static login(encodedPin, isStaff = false) {
-        if (encodedPin === ADMIN_PIN_ENCODED) {
-            localStorage.setItem('isLoggedIn', 'true');
-            localStorage.setItem('role', 'admin');
-            return 'admin';
-        } else if (isStaff) {
-            localStorage.setItem('isLoggedIn', 'true');
-            localStorage.setItem('role', 'staff');
-            return 'staff';
-        }
-        return false;
-    }
-
-    static logout() {
-        localStorage.removeItem('isLoggedIn');
-        localStorage.removeItem('role');
-        window.location.href = 'index.html';
-    }
-
-    static getRole() {
-        return localStorage.getItem('role') || 'staff';
+// Initialize specific page
+function initializePage(page) {
+    switch(page) {
+        case 'dashboard.html':
+            initializeDashboard();
+            break;
+        case 'add-customer.html':
+            initializeAddCustomer();
+            break;
+        case 'customer-profile.html':
+            initializeCustomerProfile();
+            break;
     }
 }
 
-// Database Operations
-class Database {
-    static customersCollection = collection(db, 'customers');
-    static paymentsCollection = collection(db, 'payments');
-
-    static async addCustomer(customerData) {
-        try {
-            const docRef = await addDoc(this.customersCollection, {
-                ...customerData,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            });
-            return { success: true, id: docRef.id };
-        } catch (error) {
-            console.error('Error adding customer:', error);
-            return { success: false, error };
-        }
+// ==================== AUTHENTICATION ====================
+function initializeLoginPage() {
+    const loginForm = document.getElementById('loginForm');
+    const userTypeSelect = document.getElementById('userType');
+    
+    if (loginForm) {
+        loginForm.addEventListener('submit', handleLogin);
     }
-
-    static async getCustomers() {
-        try {
-            const q = query(this.customersCollection, orderBy('createdAt', 'desc'));
-            const querySnapshot = await getDocs(q);
-            const customers = [];
-            querySnapshot.forEach((doc) => {
-                customers.push({ id: doc.id, ...doc.data() });
-            });
-            return customers;
-        } catch (error) {
-            console.error('Error getting customers:', error);
-            return [];
-        }
+    
+    // Set default date for start date field
+    const startDateField = document.getElementById('startDate');
+    if (startDateField) {
+        const today = new Date().toISOString().split('T')[0];
+        startDateField.value = today;
+        startDateField.min = today;
     }
+}
 
-    static async getCustomer(id) {
-        try {
-            const customers = await this.getCustomers();
-            return customers.find(c => c.id === id);
-        } catch (error) {
-            console.error('Error getting customer:', error);
-            return null;
-        }
-    }
-
-    static async updateCustomer(id, data) {
-        try {
-            const customerRef = doc(db, 'customers', id);
-            await updateDoc(customerRef, {
-                ...data,
-                updatedAt: new Date().toISOString()
-            });
-            return { success: true };
-        } catch (error) {
-            console.error('Error updating customer:', error);
-            return { success: false, error };
-        }
-    }
-
-    static async deleteCustomer(id) {
-        try {
-            await deleteDoc(doc(db, 'customers', id));
-            return { success: true };
-        } catch (error) {
-            console.error('Error deleting customer:', error);
-            return { success: false, error };
-        }
-    }
-
-    static async addPayment(customerId, paymentData) {
-        try {
-            await addDoc(this.paymentsCollection, {
-                customerId,
-                ...paymentData,
-                date: new Date().toISOString()
-            });
+async function handleLogin(e) {
+    e.preventDefault();
+    
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const userType = document.getElementById('userType').value;
+    
+    showLoading();
+    
+    try {
+        // For demo purposes, we'll use hardcoded credentials
+        // In production, you would use Firebase Authentication
+        if ((email === 'admin@naeemkhan.com' && password === 'admin123') ||
+            (email === 'staff@naeemkhan.com' && password === 'staff123')) {
             
-            // Update customer's remaining balance
-            const customer = await this.getCustomer(customerId);
-            if (customer) {
-                const newBalance = Math.max(0, (customer.remainingBalance || customer.totalPrice - customer.advancePaid) - paymentData.amount);
-                await this.updateCustomer(customerId, {
-                    remainingBalance: newBalance,
-                    lastPaymentDate: new Date().toISOString()
-                });
-            }
+            // Simulate successful login
+            userRole = userType;
+            localStorage.setItem('userRole', userRole);
+            localStorage.setItem('userEmail', email);
+            localStorage.setItem('userName', email.split('@')[0]);
             
-            return { success: true };
-        } catch (error) {
-            console.error('Error adding payment:', error);
-            return { success: false, error };
-        }
-    }
-
-    static async getPayments(customerId) {
-        try {
-            const q = query(this.paymentsCollection, 
-                where('customerId', '==', customerId),
-                orderBy('date', 'desc'));
-            const querySnapshot = await getDocs(q);
-            const payments = [];
-            querySnapshot.forEach((doc) => {
-                payments.push({ id: doc.id, ...doc.data() });
-            });
-            return payments;
-        } catch (error) {
-            console.error('Error getting payments:', error);
-            return [];
-        }
-    }
-}
-
-// Image Upload
-class ImageUploader {
-    static async uploadImage(file, folder = 'customer_photos') {
-        if (!file) return null;
-        
-        try {
-            const timestamp = Date.now();
-            const fileName = `${folder}_${timestamp}_${file.name}`;
-            const storageRef = ref(storage, fileName);
-            await uploadBytes(storageRef, file);
-            const downloadURL = await getDownloadURL(storageRef);
-            return downloadURL;
-        } catch (error) {
-            console.error('Error uploading image:', error);
-            return null;
-        }
-    }
-
-    static previewImage(input, previewElementId) {
-        const file = input.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const preview = document.getElementById(previewElementId);
-                preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
-            };
-            reader.readAsDataURL(file);
-        }
-    }
-}
-
-// Utility Functions
-class Utils {
-    static formatCurrency(amount) {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR'
-        }).format(amount || 0);
-    }
-
-    static formatDate(dateString) {
-        if (!dateString) return 'N/A';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-IN');
-    }
-
-    static generateTrackingId() {
-        const timestamp = Date.now().toString().slice(-6);
-        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-        return `NK${timestamp}${random}`;
-    }
-
-    static calculateRemainingBalance(total, advance) {
-        const totalNum = parseFloat(total) || 0;
-        const advanceNum = parseFloat(advance) || 0;
-        return Math.max(0, totalNum - advanceNum);
-    }
-}
-
-// Page-specific Initialization
-class PageManager {
-    static async init() {
-        // Check login state
-        if (!SessionManager.checkLogin()) return;
-
-        const currentPage = window.location.pathname.split('/').pop();
-        
-        // Set user role display
-        const role = SessionManager.getRole();
-        const roleElements = document.querySelectorAll('#userRole');
-        roleElements.forEach(el => {
-            if (el) el.textContent = role.charAt(0).toUpperCase() + role.slice(1);
-        });
-
-        // Setup logout button
-        const logoutButtons = document.querySelectorAll('#logoutBtn');
-        logoutButtons.forEach(btn => {
-            if (btn) btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                SessionManager.logout();
-            });
-        });
-
-        // Page-specific initialization
-        switch(currentPage) {
-            case 'dashboard.html':
-                await this.initDashboard();
-                break;
-            case 'add_customer.html':
-                await this.initAddCustomer();
-                break;
-            case 'customer_details.html':
-                await this.initCustomerDetails();
-                break;
-            case 'index.html':
-                this.initLogin();
-                break;
-            default:
-                if (currentPage.includes('customer_list')) {
-                    await this.initCustomerList();
-                }
-        }
-    }
-
-    static initLogin() {
-        const loginBtn = document.getElementById('loginBtn');
-        const staffBtn = document.getElementById('staffBtn');
-        const pinInput = document.getElementById('pin');
-
-        if (loginBtn) {
-            loginBtn.addEventListener('click', () => {
-                const encodedPin = btoa(pinInput.value);
-                const role = SessionManager.login(encodedPin);
-                
-                if (role === 'admin') {
-                    window.location.href = 'dashboard.html';
-                } else {
-                    alert('Invalid PIN code!');
-                }
-            });
-        }
-
-        if (staffBtn) {
-            staffBtn.addEventListener('click', () => {
-                SessionManager.login('', true);
+            // Redirect to dashboard
+            setTimeout(() => {
+                hideLoading();
                 window.location.href = 'dashboard.html';
-            });
+            }, 1000);
+            
+        } else {
+            throw new Error('Invalid credentials');
         }
+    } catch (error) {
+        hideLoading();
+        alert('Login failed: ' + error.message);
     }
+}
 
-    static async initDashboard() {
-        await this.loadDashboardStats();
-        await this.loadCustomerTable();
-        this.setupSearch();
-        this.setupModals();
-    }
+function logout() {
+    auth.signOut().then(() => {
+        localStorage.clear();
+        window.location.href = 'index.html';
+    });
+}
 
-    static async loadDashboardStats() {
-        const customers = await Database.getCustomers();
-        const totalCustomers = customers.length;
-        const totalReceivables = customers.reduce((sum, customer) => {
-            const balance = customer.remainingBalance || 
-                          Utils.calculateRemainingBalance(customer.totalPrice, customer.advancePaid);
-            return sum + balance;
-        }, 0);
-        const completedAccounts = customers.filter(customer => {
-            const balance = customer.remainingBalance || 
-                          Utils.calculateRemainingBalance(customer.totalPrice, customer.advancePaid);
-            return balance === 0;
-        }).length;
+// ==================== ADMIN PIN MODAL ====================
+function openPinModal(action, message = 'Please enter your 4-digit PIN to continue:') {
+    pendingAction = action;
+    document.getElementById('pinMessage').textContent = message;
+    pinInput.value = '';
+    pinError.classList.add('hidden');
+    pinModal.classList.remove('hidden');
+    pinInput.focus();
+}
 
-        document.getElementById('totalCustomers').textContent = totalCustomers;
-        document.getElementById('totalReceivables').textContent = Utils.formatCurrency(totalReceivables);
-        document.getElementById('completedAccounts').textContent = completedAccounts;
-        document.getElementById('activeAccounts').textContent = totalCustomers - completedAccounts;
-        document.getElementById('totalCount').textContent = totalCustomers;
-    }
+function closePinModal() {
+    pinModal.classList.add('hidden');
+    pendingAction = null;
+}
 
-    static async loadCustomerTable() {
-        const customers = await Database.getCustomers();
-        const tableBody = document.getElementById('customerTableBody');
-        const role = SessionManager.getRole();
-        const isAdmin = role === 'admin';
-
-        tableBody.innerHTML = '';
-
-        customers.forEach(customer => {
-            const balance = customer.remainingBalance || 
-                          Utils.calculateRemainingBalance(customer.totalPrice, customer.advancePaid);
-            const isCompleted = balance === 0;
-            const rowClass = isCompleted ? 'status-completed' : '';
-
-            const row = document.createElement('tr');
-            row.className = rowClass;
-            row.innerHTML = `
-                <td>${customer.trackingId || customer.id.slice(-6)}</td>
-                <td>
-                    <img src="${customer.photo || 'data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"40\" height=\"40\"><rect width=\"100%\" height=\"100%\" fill=\"%23004d7a\"/><text x=\"50%\" y=\"50%\" font-family=\"Arial\" font-size=\"12\" fill=\"white\" text-anchor=\"middle\" dy=\".3em\">N/A</text></svg>'}" 
-                         alt="Photo" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
-                </td>
-                <td>${customer.customerName || 'N/A'}</td>
-                <td>${Utils.formatCurrency(balance)}</td>
-                <td>
-                    <span class="status-badge ${isCompleted ? 'completed' : 'pending'}">
-                        ${isCompleted ? 'COMPLETED' : 'PENDING'}
-                    </span>
-                </td>
-                <td>
-                    <button class="btn btn-sm btn-primary pay-btn" data-id="${customer.id}">
-                        <i class="fas fa-money-bill"></i> Pay
-                    </button>
-                    <button class="btn btn-sm btn-success view-btn" data-id="${customer.id}">
-                        <i class="fas fa-eye"></i> View
-                    </button>
-                    ${isAdmin ? `
-                        <button class="btn btn-sm btn-danger delete-btn" data-id="${customer.id}">
-                            <i class="fas fa-trash"></i> Delete
-                        </button>
-                    ` : ''}
-                </td>
-            `;
-
-            tableBody.appendChild(row);
-        });
-
-        document.getElementById('shownCount').textContent = customers.length;
-
-        // Add event listeners
-        this.setupTableButtons();
-    }
-
-    static setupTableButtons() {
-        // Pay buttons
-        document.querySelectorAll('.pay-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const customerId = e.target.closest('.pay-btn').dataset.id;
-                this.openPaymentModal(customerId);
-            });
-        });
-
-        // View buttons
-        document.querySelectorAll('.view-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const customerId = e.target.closest('.view-btn').dataset.id;
-                window.location.href = `customer_details.html?id=${customerId}`;
-            });
-        });
-
-        // Delete buttons
-        document.querySelectorAll('.delete-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const customerId = e.target.closest('.delete-btn').dataset.id;
-                this.openDeleteModal(customerId);
-            });
-        });
-    }
-
-    static setupSearch() {
-        const searchInput = document.getElementById('searchInput');
-        if (searchInput) {
-            searchInput.addEventListener('input', async (e) => {
-                const searchTerm = e.target.value.toLowerCase();
-                const customers = await Database.getCustomers();
-                const filtered = customers.filter(customer => 
-                    customer.customerName?.toLowerCase().includes(searchTerm) ||
-                    customer.trackingId?.toLowerCase().includes(searchTerm) ||
-                    customer.cnic?.includes(searchTerm)
-                );
-                
-                // Update table with filtered results
-                const tableBody = document.getElementById('customerTableBody');
-                tableBody.innerHTML = '';
-                
-                filtered.forEach(customer => {
-                    const balance = customer.remainingBalance || 
-                                  Utils.calculateRemainingBalance(customer.totalPrice, customer.advancePaid);
-                    const isCompleted = balance === 0;
-                    const rowClass = isCompleted ? 'status-completed' : '';
-
-                    const row = document.createElement('tr');
-                    row.className = rowClass;
-                    row.innerHTML = `
-                        <td>${customer.trackingId || customer.id.slice(-6)}</td>
-                        <td>
-                            <img src="${customer.photo || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iIzAwNGQ3YSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+TkE8L3RleHQ+PC9zdmc+'}" 
-                                 alt="Photo" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
-                        </td>
-                        <td>${customer.customerName || 'N/A'}</td>
-                        <td>${Utils.formatCurrency(balance)}</td>
-                        <td>
-                            <span class="status-badge ${isCompleted ? 'completed' : 'pending'}">
-                                ${isCompleted ? 'COMPLETED' : 'PENDING'}
-                            </span>
-                        </td>
-                        <td>
-                            <button class="btn btn-sm btn-primary pay-btn" data-id="${customer.id}">
-                                <i class="fas fa-money-bill"></i> Pay
-                            </button>
-                            <button class="btn btn-sm btn-success view-btn" data-id="${customer.id}">
-                                <i class="fas fa-eye"></i> View
-                            </button>
-                            ${SessionManager.getRole() === 'admin' ? `
-                                <button class="btn btn-sm btn-danger delete-btn" data-id="${customer.id}">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            ` : ''}
-                        </td>
-                    `;
-
-                    tableBody.appendChild(row);
-                });
-
-                document.getElementById('shownCount').textContent = filtered.length;
-                this.setupTableButtons();
-            });
+function verifyPin() {
+    const enteredPin = pinInput.value;
+    
+    if (enteredPin === ADMIN_PIN) {
+        pinError.classList.add('hidden');
+        closePinModal();
+        
+        // Execute pending action
+        if (pendingAction && typeof pendingAction === 'function') {
+            pendingAction();
         }
+    } else {
+        pinError.classList.remove('hidden');
+        pinInput.value = '';
+        pinInput.focus();
     }
+}
 
-    static setupModals() {
-        const modals = document.querySelectorAll('.modal');
-        const closeButtons = document.querySelectorAll('.close-modal');
-
-        closeButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                modals.forEach(modal => modal.classList.remove('active'));
-            });
-        });
-
-        window.addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal')) {
-                e.target.classList.remove('active');
-            }
-        });
+// ==================== DASHBOARD PAGE ====================
+function initializeDashboard() {
+    // Set user info
+    const userRole = localStorage.getItem('userRole') || 'staff';
+    const userEmail = localStorage.getItem('userEmail') || 'user@example.com';
+    const userName = localStorage.getItem('userName') || 'User';
+    
+    document.getElementById('userRoleBadge').textContent = userRole === 'admin' ? 'Admin' : 'Staff';
+    document.getElementById('userEmail').textContent = userEmail;
+    document.getElementById('userName').textContent = userName.charAt(0).toUpperCase() + userName.slice(1);
+    
+    // Hide admin-only buttons for staff
+    if (userRole === 'staff') {
+        const addCustomerBtn = document.getElementById('addCustomerBtn');
+        if (addCustomerBtn) addCustomerBtn.style.display = 'none';
     }
+    
+    // Load dashboard data
+    loadDashboardData();
+}
 
-    static async openPaymentModal(customerId) {
-        const modal = document.getElementById('paymentModal');
-        const confirmBtn = document.getElementById('confirmPaymentBtn');
+async function loadDashboardData() {
+    showLoading();
+    
+    try {
+        // For demo, we'll use mock data
+        // In production, fetch from Firestore
         
-        // Set today's date as default
-        document.getElementById('paymentDate').valueAsDate = new Date();
-        
-        // Clear previous event listener
-        const newConfirmBtn = confirmBtn.cloneNode(true);
-        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-        
-        newConfirmBtn.addEventListener('click', async () => {
-            const amount = parseFloat(document.getElementById('paymentAmount').value);
-            const date = document.getElementById('paymentDate').value;
-            const notes = document.getElementById('paymentNotes').value;
-            
-            if (!amount || amount <= 0) {
-                alert('Please enter a valid amount');
-                return;
-            }
-            
-            const result = await Database.addPayment(customerId, {
-                amount,
-                date: new Date(date).toISOString(),
-                notes,
-                method: 'Cash' // Default payment method
-            });
-            
-            if (result.success) {
-                alert('Payment recorded successfully!');
-                modal.classList.remove('active');
-                await this.loadDashboardStats();
-                await this.loadCustomerTable();
-                
-                // Clear form
-                document.getElementById('paymentAmount').value = '';
-                document.getElementById('paymentNotes').value = '';
-            } else {
-                alert('Error recording payment. Please try again.');
-            }
-        });
-        
-        modal.classList.add('active');
-    }
-
-    static openDeleteModal(customerId) {
-        const modal = document.getElementById('deleteModal');
-        const confirmBtn = document.getElementById('confirmDeleteBtn');
-        
-        // Clear previous event listener
-        const newConfirmBtn = confirmBtn.cloneNode(true);
-        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-        
-        newConfirmBtn.addEventListener('click', async () => {
-            const enteredPin = document.getElementById('deletePin').value;
-            const encodedPin = btoa(enteredPin);
-            
-            if (encodedPin !== ADMIN_PIN_ENCODED) {
-                alert('Incorrect PIN. Deletion cancelled.');
-                modal.classList.remove('active');
-                return;
-            }
-            
-            const result = await Database.deleteCustomer(customerId);
-            
-            if (result.success) {
-                alert('Customer deleted successfully!');
-                modal.classList.remove('active');
-                await this.loadDashboardStats();
-                await this.loadCustomerTable();
-                document.getElementById('deletePin').value = '';
-            } else {
-                alert('Error deleting customer. Please try again.');
-            }
-        });
-        
-        modal.classList.add('active');
-    }
-
-    static async initAddCustomer() {
-        const form = document.getElementById('customerForm');
-        
-        // Set today's date as default for registration
-        document.getElementById('registrationDate').valueAsDate = new Date();
-        document.getElementById('startDate').valueAsDate = new Date();
-        
-        // Auto-generate tracking ID if empty
-        document.getElementById('trackingId').addEventListener('blur', function() {
-            if (!this.value.trim()) {
-                this.value = Utils.generateTrackingId();
-            }
-        });
-        
-        // Calculate remaining balance in real-time
-        const calculateBalance = () => {
-            const totalPrice = parseFloat(document.getElementById('totalPrice').value) || 0;
-            const advancePaid = parseFloat(document.getElementById('advancePaid').value) || 0;
-            const remaining = Utils.calculateRemainingBalance(totalPrice, advancePaid);
-            
-            document.getElementById('remainingBalance').value = Utils.formatCurrency(remaining);
-            document.getElementById('statusDisplay').textContent = remaining === 0 ? 'COMPLETED' : 'PENDING';
-            document.getElementById('statusDisplay').className = remaining === 0 ? 'status-completed' : 'status-pending';
+        const mockData = {
+            totalCustomers: 157,
+            activeCustomers: 142,
+            totalRevenue: 4500000,
+            monthlyRevenue: 350000,
+            pendingAmount: 850000,
+            defaultersCount: 15,
+            collectionRate: 85
         };
         
-        document.getElementById('totalPrice').addEventListener('input', calculateBalance);
-        document.getElementById('advancePaid').addEventListener('input', calculateBalance);
+        // Update UI
+        document.getElementById('totalCustomers').textContent = mockData.totalCustomers;
+        document.getElementById('activeCustomers').textContent = mockData.activeCustomers;
+        document.getElementById('totalRevenue').textContent = '₹' + mockData.totalRevenue.toLocaleString();
+        document.getElementById('monthlyRevenue').textContent = '₹' + mockData.monthlyRevenue.toLocaleString();
+        document.getElementById('pendingAmount').textContent = '₹' + mockData.pendingAmount.toLocaleString();
+        document.getElementById('defaultersCount').textContent = mockData.defaultersCount;
+        document.getElementById('collectionRate').textContent = mockData.collectionRate + '%';
         
-        // Image previews
-        document.getElementById('customerPhoto').addEventListener('change', function() {
-            ImageUploader.previewImage(this, 'photoPreview');
-        });
-        
-        document.getElementById('cnicFront').addEventListener('change', function() {
-            ImageUploader.previewImage(this, 'cnicFrontPreview');
-        });
-        
-        document.getElementById('cnicBack').addEventListener('change', function() {
-            ImageUploader.previewImage(this, 'cnicBackPreview');
-        });
-        
-        // Form submission
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            // Get all form values
-            const formData = {
-                trackingId: document.getElementById('trackingId').value || Utils.generateTrackingId(),
-                registrationDate: document.getElementById('registrationDate').value,
-                customerName: document.getElementById('customerName').value,
-                fatherName: document.getElementById('fatherName').value,
-                cnic: document.getElementById('cnic').value,
-                phone1: document.getElementById('phone1').value,
-                phone2: document.getElementById('phone2').value,
-                address: document.getElementById('address').value,
-                jobTitle: document.getElementById('jobTitle').value,
-                guarantorName: document.getElementById('guarantorName').value,
-                guarantorPhone: document.getElementById('guarantorPhone').value,
-                guarantorCnic: document.getElementById('guarantorCnic').value,
-                guarantorAddress: document.getElementById('guarantorAddress').value,
-                productName: document.getElementById('productName').value,
-                totalPrice: parseFloat(document.getElementById('totalPrice').value) || 0,
-                advancePaid: parseFloat(document.getElementById('advancePaid').value) || 0,
-                monthlyInstallment: parseFloat(document.getElementById('monthlyInstallment').value) || 0,
-                startDate: document.getElementById('startDate').value,
-                remainingBalance: Utils.calculateRemainingBalance(
-                    parseFloat(document.getElementById('totalPrice').value) || 0,
-                    parseFloat(document.getElementById('advancePaid').value) || 0
-                )
-            };
-            
-            // Upload images
-            const photoFile = document.getElementById('customerPhoto').files[0];
-            const cnicFrontFile = document.getElementById('cnicFront').files[0];
-            const cnicBackFile = document.getElementById('cnicBack').files[0];
-            
-            try {
-                if (photoFile) formData.photo = await ImageUploader.uploadImage(photoFile, 'customer_photos');
-                if (cnicFrontFile) formData.cnicFront = await ImageUploader.uploadImage(cnicFrontFile, 'cnic_front');
-                if (cnicBackFile) formData.cnicBack = await ImageUploader.uploadImage(cnicBackFile, 'cnic_back');
-                
-                // Save to database
-                const result = await Database.addCustomer(formData);
-                
-                if (result.success) {
-                    alert('Customer added successfully!');
-                    window.location.href = 'dashboard.html';
-                } else {
-                    alert('Error adding customer. Please try again.');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('An error occurred. Please check your data and try again.');
-            }
-        });
-    }
-
-    static async initCustomerDetails() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const customerId = urlParams.get('id');
-        
-        if (!customerId) {
-            alert('No customer selected. Redirecting to dashboard...');
-            window.location.href = 'dashboard.html';
-            return;
+        const progressBar = document.getElementById('collectionProgressBar');
+        if (progressBar) {
+            progressBar.style.width = mockData.collectionRate + '%';
         }
         
-        const customer = await Database.getCustomer(customerId);
-        if (!customer) {
-            alert('Customer not found. Redirecting to dashboard...');
-            window.location.href = 'dashboard.html';
-            return;
-        }
+        // Load recent customers
+        loadRecentCustomers();
         
-        // Display customer information
-        this.displayCustomerDetails(customer);
+        // Load defaulters
+        loadDefaulters();
         
-        // Load payment history
-        await this.loadPaymentHistory(customerId);
-        
-        // Setup buttons
-        this.setupDetailButtons(customer);
-    }
-
-    static displayCustomerDetails(customer) {
-        // Basic info
-        document.getElementById('customerIdDisplay').textContent = `Tracking ID: ${customer.trackingId || 'N/A'}`;
-        document.getElementById('detailName').textContent = customer.customerName || 'N/A';
-        document.getElementById('detailFatherName').textContent = customer.fatherName || 'N/A';
-        document.getElementById('detailCnic').textContent = customer.cnic || 'N/A';
-        document.getElementById('detailPhone').textContent = customer.phone1 || 'N/A';
-        document.getElementById('detailAddress').textContent = customer.address || 'N/A';
-        document.getElementById('detailJob').textContent = customer.jobTitle || 'N/A';
-        
-        // Financial info
-        document.getElementById('summaryProduct').textContent = customer.productName || 'N/A';
-        document.getElementById('summaryTotal').textContent = Utils.formatCurrency(customer.totalPrice || 0);
-        document.getElementById('summaryAdvance').textContent = Utils.formatCurrency(customer.advancePaid || 0);
-        document.getElementById('summaryInstallment').textContent = Utils.formatCurrency(customer.monthlyInstallment || 0);
-        document.getElementById('summaryStartDate').textContent = Utils.formatDate(customer.startDate);
-        
-        // Guarantor info
-        document.getElementById('guarantorNameDetail').textContent = customer.guarantorName || 'N/A';
-        document.getElementById('guarantorPhoneDetail').textContent = customer.guarantorPhone || 'N/A';
-        document.getElementById('guarantorCnicDetail').textContent = customer.guarantorCnic || 'N/A';
-        document.getElementById('guarantorAddressDetail').textContent = customer.guarantorAddress || 'N/A';
-        
-        // Balance and status
-        const remainingBalance = customer.remainingBalance || 
-                               Utils.calculateRemainingBalance(customer.totalPrice, customer.advancePaid);
-        document.getElementById('remainingBalanceDisplay').textContent = Utils.formatCurrency(remainingBalance);
-        
-        const statusBadge = document.getElementById('statusBadge');
-        if (remainingBalance === 0) {
-            statusBadge.textContent = 'COMPLETED';
-            statusBadge.className = 'status-badge completed';
-        } else {
-            statusBadge.textContent = 'PENDING';
-            statusBadge.className = 'status-badge pending';
-        }
-        
-        // Photo
-        const photoElement = document.getElementById('detailCustomerPhoto');
-        if (customer.photo) {
-            photoElement.src = customer.photo;
-        }
-        
-        // Invoice info
-        document.getElementById('invoiceDate').textContent = Utils.formatDate(new Date());
-        document.getElementById('invoiceNumber').textContent = `INV-${customer.trackingId || customer.id.slice(-6).toUpperCase()}`;
-    }
-
-    static async loadPaymentHistory(customerId) {
-        const payments = await Database.getPayments(customerId);
-        const tableBody = document.getElementById('paymentHistoryBody');
-        let totalPaid = 0;
-        
-        tableBody.innerHTML = '';
-        
-        payments.forEach(payment => {
-            totalPaid += payment.amount;
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${Utils.formatDate(payment.date)}</td>
-                <td>${Utils.formatCurrency(payment.amount)}</td>
-                <td>${payment.method || 'Cash'}</td>
-                <td>${payment.notes || '-'}</td>
-                <td>-</td>
-            `;
-            tableBody.appendChild(row);
-        });
-        
-        document.getElementById('totalPaidAmount').innerHTML = `<strong>${Utils.formatCurrency(totalPaid)}</strong>`;
-        
-        // If no payments, show message
-        if (payments.length === 0) {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td colspan="5" class="text-center">No payments recorded yet</td>
-            `;
-            tableBody.appendChild(row);
-        }
-    }
-
-    static setupDetailButtons(customer) {
-        const printBtn = document.getElementById('printBtn');
-        const whatsappBtn = document.getElementById('whatsappBtn');
-        
-        if (printBtn) {
-            printBtn.addEventListener('click', () => {
-                window.print();
-            });
-        }
-        
-        if (whatsappBtn) {
-            whatsappBtn.addEventListener('click', () => {
-                const remainingBalance = customer.remainingBalance || 
-                                       Utils.calculateRemainingBalance(customer.totalPrice, customer.advancePaid);
-                
-                const message = `*Customer Ledger - Naeem Khan Traders*
-                
-*Customer:* ${customer.customerName}
-*Tracking ID:* ${customer.trackingId}
-*Remaining Balance:* ${Utils.formatCurrency(remainingBalance)}
-*Status:* ${remainingBalance === 0 ? 'COMPLETED' : 'PENDING'}
-
-*Product:* ${customer.productName}
-*Total Price:* ${Utils.formatCurrency(customer.totalPrice)}
-*Advance Paid:* ${Utils.formatCurrency(customer.advancePaid)}
-*Monthly Installment:* ${Utils.formatCurrency(customer.monthlyInstallment)}
-
-Please make payments on time.`;
-                
-                const encodedMessage = encodeURIComponent(message);
-                const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
-                window.open(whatsappUrl, '_blank');
-            });
-        }
-    }
-
-    static async initCustomerList() {
-        // This would be similar to dashboard table but with all customers
-        // For simplicity, redirect to dashboard for now
-        window.location.href = 'dashboard.html';
+    } catch (error) {
+        console.error('Error loading dashboard data:', error);
+        alert('Failed to load dashboard data');
+    } finally {
+        hideLoading();
     }
 }
 
-// Initialize the application when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    PageManager.init();
-});
+function loadRecentCustomers() {
+    const container = document.getElementById('recentCustomers');
+    if (!container) return;
+    
+    const mockCustomers = [
+        { id: '1', name: 'Ahmed Khan', phone: '0300-1234567', amount: 15000, status: 'active' },
+        { id: '2', name: 'Fatima Ali', phone: '0312-7654321', amount: 20000, status: 'active' },
+        { id: '3', name: 'Usman Shah', phone: '0333-9876543', amount: 18000, status: 'active' },
+        { id: '4', name: 'Zainab Malik', phone: '0345-4567890', amount: 25000, status: 'active' },
+        { id: '5', name: 'Bilal Ahmed', phone: '0301-1122334', amount: 12000, status: 'active' }
+    ];
+    
+    container.innerHTML = '';
+    
+    mockCustomers.forEach(customer => {
+        const customerElement = document.createElement('div');
+        customerElement.className = 'flex items-center justify-between p-3 bg-gray-800/50 rounded-lg';
+        customerElement.innerHTML = `
+            <div>
+                <h4 class="font-bold text-white">${customer.name}</h4>
+                <p class="text-sm text-gray-400">${customer.phone}</p>
+            </div>
+            <div class="text-right">
+                <p class="text-gold font-bold">₹${customer.amount.toLocaleString()}</p>
+                <a href="customer-profile.html?id=${customer.id}" 
+                   class="text-sm text-purple-400 hover:text-purple-300">View Profile</a>
+            </div>
+        `;
+        container.appendChild(customerElement);
+    });
+}
+
+function loadDefaulters() {
+    const container = document.getElementById('defaultersList');
+    if (!container) return;
+    
+    const mockDefaulters = [
+        { id: '6', name: 'Kamran Javed', phone: '0321-2233445', overdue: 2, amount: 15000 },
+        { id: '7', name: 'Sadia Noor', phone: '0334-5566778', overdue: 1, amount: 20000 },
+        { id: '8', name: 'Imran Butt', phone: '0305-6677889', overdue: 3, amount: 18000 }
+    ];
+    
+    container.innerHTML = '';
+    
+    mockDefaulters.forEach(defaulter => {
+        const defaulterElement = document.createElement('div');
+        defaulterElement.className = 'flex items-center justify-between p-3 bg-red-900/20 rounded-lg border border-red-800/30';
+        defaulterElement.innerHTML = `
+            <div>
+                <h4 class="font-bold text-white">${defaulter.name}</h4>
+                <p class="text-sm text-gray-400">${defaulter.phone}</p>
+                <span class="text-xs text-red-400">${defaulter.overdue} month(s) overdue</span>
+            </div>
+            <div class="text-right">
+                <p class="text-red-400 font-bold">₹${defaulter.amount.toLocaleString()}</p>
+                <a href="customer-profile.html?id=${defaulter.id}" 
+                   class="text-sm text-purple-400 hover:text-purple-300">Contact</a>
+            </div>
+        `;
+        container.appendChild(defaulterElement);
+    });
+}
+
+function refreshData() {
+    loadDashboardData();
+}
+
+// ==================== ADD CUSTOMER PAGE ====================
+function initializeAddCustomer() {
+    const userRole = localStorage.getItem('userRole') || 'staff';
+    document.getElementById('userRoleBadge').textContent = userRole === 'admin' ? 'Admin' : 'Staff';
+    
+    // Initialize calculations
+    calculateInstallments();
+    
+    // Handle form submission
+    const form = document.getElementById('customerForm');
+    if (form) {
+        form.addEventListener('submit', handleAddCustomer);
+    }
+}
+
+function formatCNIC(input) {
+    let value = input.value.replace(/\D/g, '');
+    
+    if (value.length > 13) {
+        value = value.substring(0, 13);
+    }
+    
+    if (value.length > 5) {
+        value = value.substring(0, 5) + '-' + value.substring(5);
+    }
+    if (value.length > 13) {
+        value = value.substring(0, 13) + '-' + value.substring(13);
+    }
+    
+    input.value = value;
+}
+
+function calculateInstallments() {
+    const price = parseFloat(document.getElementById('productPrice').value) || 0;
+    const advance = parseFloat(document.getElementById('advancePayment').value) || 0;
+    const monthly = parseFloat(document.getElementById('monthlyInstallment').value) || 0;
+    
+    const remaining = price - advance;
+    document.getElementById('remainingBalance').textContent = '₹' + remaining.toLocaleString();
+    
+    if (monthly > 0) {
+        const installments = Math.ceil(remaining / monthly);
+        document.getElementById('installmentsRequired').textContent = installments;
+        document.getElementById('completionTime').textContent = installments + ' months';
+    } else {
+        document.getElementById('installmentsRequired').textContent = '0';
+        document.getElementById('completionTime').textContent = '0 months';
+    }
+}
+
+function calculateRemaining() {
+    calculateInstallments();
+}
+
+async function handleAddCustomer(e) {
+    e.preventDefault();
+    
+    const userRole = localStorage.getItem('userRole');
+    if (userRole !== 'admin') {
+        alert('Only administrators can add new customers.');
+        return;
+    }
+    
+    // Collect form data
+    const customerData = {
+        name: document.getElementById('customerName').value,
+        cnic: document.getElementById('cnic').value,
+        phone: document.getElementById('phone').value,
+        address: document.getElementById('address').value,
+        productName: document.getElementById('productName').value,
+        productPrice: parseFloat(document.getElementById('productPrice').value),
+        advancePayment: parseFloat(document.getElementById('advancePayment').value),
+        monthlyInstallment: parseFloat(document.getElementById('monthlyInstallment').value),
+        guarantorName: document.getElementById('guarantorName').value,
+        guarantorPhone: document.getElementById('guarantorPhone').value,
+        guarantorCNIC: document.getElementById('guarantorCNIC').value,
+        guarantorAddress: document.getElementById('guarantorAddress').value,
+        notes: document.getElementById('notes').value,
+        startDate: document.getElementById('startDate').value,
+        remainingBalance: parseFloat(document.getElementById('productPrice').value) - 
+                         parseFloat(document.getElementById('advancePayment').value),
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        installments: [],
+        totalPaid: parseFloat(document.getElementById('advancePayment').value)
+    };
+    
+    // Calculate installments required
+    if (customerData.monthlyInstallment > 0) {
+        customerData.installmentsRequired = Math.ceil(customerData.remainingBalance / customerData.monthlyInstallment);
+    }
+    
+    showLoading();
+    
+    try {
+        // In production, save to Firestore
+        // For demo, simulate success
+        setTimeout(() => {
+            hideLoading();
+            showSuccessModal();
+        }, 1500);
+        
+    } catch (error) {
+        hideLoading();
+        alert('Failed to add customer: ' + error.message);
+    }
+}
+
+function showSuccessModal() {
+    const modal = document.getElementById('successModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+}
+
+function closeSuccessModal() {
+    const modal = document.getElementById('successModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        document.getElementById('customerForm').reset();
+        calculateInstallments();
+    }
+}
+
+// ==================== CUSTOMER PROFILE PAGE ====================
+function initializeCustomerProfile() {
+    const userRole = localStorage.getItem('userRole') || 'staff';
+    document.getElementById('userRoleBadge').textContent = userRole === 'admin' ? 'Admin' : 'Staff';
+    
+    // Hide admin-only buttons for staff
+    if (userRole === 'staff') {
+        const adminButtons = ['markPaidBtn', 'editCustomerBtn', 'deleteCustomerBtn'];
+        adminButtons.forEach(btnId => {
+            const btn = document.getElementById(btnId);
+            if (btn) btn.style.display = 'none';
+        });
+    }
+    
+    // Load customer data from URL parameter
+    loadCustomerData();
+}
+
+function getCustomerIdFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('id');
+}
+
+async function loadCustomerData() {
+    const customerId = getCustomerIdFromURL();
+    
+    if (!customerId) {
+        showErrorState('No customer ID provided');
+        return;
+    }
+    
+    showLoading();
+    
+    try {
+        // For demo, use mock data
+        // In production, fetch from Firestore
+        
+        const mockCustomer = {
+            id: customerId,
+            name: 'Ahmed Khan',
+            cnic: '42101-1234567-8',
+            phone: '0300-1234567',
+            address: 'House #123, Street 45, Lahore',
+            productName: 'iPhone 14 Pro Max',
+            productPrice: 350000,
+            advancePayment: 50000,
+            monthlyInstallment: 10000,
+            remainingBalance: 250000,
+            totalPaid: 100000,
+            startDate: '2024-01-15',
+            status: 'active',
+            guarantorName: 'Ali Raza',
+            guarantorCNIC: '42101-7654321-0',
+            guarantorPhone: '0312-9876543',
+            guarantorAddress: 'House #456, Street 78, Lahore',
+            notes: 'Good customer, pays on time',
+            installments: [
+                { month: 'January', amount: 10000, date: '2024-01-15', status: 'paid' },
+                { month: 'February', amount: 10000, date: '2024-02-15', status: 'paid' },
+                { month: 'March', amount: 10000, date: '2024-03-15', status: 'paid' },
+                { month: 'April', amount: 10000, date: '2024-04-15', status: 'paid' },
+                { month: 'May', amount: 10000, date: '2024-05-15', status: 'paid' },
+                { month: 'June', amount: 10000, date: '2024-06-15', status: 'pending' },
+                { month: 'July', amount: 10000, date: '2024-07-15', status: 'pending' }
+            ]
+        };
+        
+        // Update UI with customer data
+        updateProfileUI(mockCustomer);
+        
+        // Hide loading, show data
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('profileData').classList.remove('hidden');
+        
+    } catch (error) {
+        console.error('Error loading customer:', error);
+        showErrorState('Failed to load customer data');
+    } finally {
+        hideLoading();
+    }
+}
+
+function updateProfileUI(customer) {
+    // Basic Info
+    document.getElementById('profileCustomerName').textContent = customer.name;
+    document.getElementById('profileCnic').textContent = 'CNIC: ' + customer.cnic;
+    document.getElementById('profilePhone').textContent = 'Phone: ' + customer.phone;
+    
+    // Payment Progress
+    const progressPercent = Math.round((customer.totalPaid / customer.productPrice) * 100);
+    document.getElementById('progressPercent').textContent = progressPercent + '%';
+    document.getElementById('paidAmount').textContent = '₹' + customer.totalPaid.toLocaleString();
+    document.getElementById('remainingAmount').textContent = '₹' + customer.remainingBalance.toLocaleString();
+    document.getElementById('totalAmount').textContent = '₹' + customer.productPrice.toLocaleString();
+    
+    // Update progress circle
+    const circle = document.getElementById('progressCircle');
+    if (circle) {
+        const circumference = 100; // Simplified for demo
+        const offset = circumference - (progressPercent * circumference / 100);
+        circle.style.strokeDashoffset = offset;
+    }
+    
+    // Installment Summary
+    document.getElementById('monthlyInstallmentAmount').textContent = '₹' + customer.monthlyInstallment.toLocaleString();
+    const paidInstallments = customer.installments.filter(i => i.status === 'paid').length;
+    const totalInstallments = customer.installments.length;
+    document.getElementById('installmentsPaid').textContent = `${paidInstallments}/${totalInstallments}`;
+    
+    // Calculate next due date (next pending installment)
+    const pendingInstallments = customer.installments.filter(i => i.status === 'pending');
+    const nextDueDate = pendingInstallments.length > 0 ? pendingInstallments[0].date : 'N/A';
+    document.getElementById('nextDueDate').textContent = formatDate(nextDueDate);
+    
+    // Product Info
+    document.getElementById('productInfoName').textContent = customer.productName;
+    document.getElementById('startDateInfo').textContent = formatDate(customer.startDate);
+    document.getElementById('guarantorInfo').textContent = customer.guarantorName;
+    
+    // Customer Details
+    document.getElementById('detailName').textContent = customer.name;
+    document.getElementById('detailCnic').textContent = customer.cnic;
+    document.getElementById('detailPhone').textContent = customer.phone;
+    document.getElementById('detailAddress').textContent = customer.address;
+    
+    // Guarantor Details
+    document.getElementById('detailGuarantorName').textContent = customer.guarantorName;
+    document.getElementById('detailGuarantorCnic').textContent = customer.guarantorCNIC;
+    document.getElementById('detailGuarantorPhone').textContent = customer.guarantorPhone;
+    document.getElementById('detailGuarantorAddress').textContent = customer.guarantorAddress;
+    
+    // Installment History
+    const historyContainer = document.getElementById('installmentHistory');
+    if (historyContainer) {
+        historyContainer.innerHTML = '';
+        
+        customer.installments.forEach(installment => {
+            const installmentElement = document.createElement('div');
+            installmentElement.className = 'flex items-center justify-between p-3 bg-gray-800/50 rounded-lg';
+            
+            let statusClass = 'status-pending';
+            if (installment.status === 'paid') statusClass = 'status-paid';
+            if (installment.status === 'overdue') statusClass = 'status-overdue';
+            
+            installmentElement.innerHTML = `
+                <div>
+                    <h4 class="font-bold text-white">${installment.month} Installment</h4>
+                    <p class="text-sm text-gray-400">Due: ${formatDate(installment.date)}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-gold font-bold">₹${installment.amount.toLocaleString()}</p>
+                    <span class="${statusClass}">${installment.status.charAt(0).toUpperCase() + installment.status.slice(1)}</span>
+                </div>
+            `;
+            historyContainer.appendChild(installmentElement);
+        });
+    }
+}
+
+function showErrorState(message) {
+    document.getElementById('loadingState').classList.add('hidden');
+    document.getElementById('profileData').classList.add('hidden');
+    const errorState = document.getElementById('errorState');
+    if (errorState) {
+        errorState.classList.remove('hidden');
+        if (message) {
+            const errorMessage = errorState.querySelector('p');
+            if (errorMessage) {
+                errorMessage.textContent = message;
+            }
+        }
+    }
+}
+
+function formatDate(dateString) {
+    if (!dateString || dateString === 'N/A') return 'N/A';
+    
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+}
+
+// ==================== PROFILE ACTIONS ====================
+function markPaid() {
+    const userRole = localStorage.getItem('userRole');
+    if (userRole !== 'admin') {
+        alert('Only administrators can mark installments as paid.');
+        return;
+    }
+    
+    openPinModal(() => {
+        showLoading('Marking installment as paid...');
+        
+        // In production, update Firestore
+        setTimeout(() => {
+            hideLoading();
+            alert('Installment marked as paid successfully!');
+            // Refresh the page
+            loadCustomerData();
+        }, 1000);
+    }, 'Enter PIN to mark installment as paid:');
+}
+
+function editCustomer() {
+    const userRole = localStorage.getItem('userRole');
+    if (userRole !== 'admin') {
+        alert('Only administrators can edit customer information.');
+        return;
+    }
+    
+    openPinModal(() => {
+        // Redirect to edit page or open edit modal
+        alert('Edit functionality would open here with PIN verified.');
+    }, 'Enter PIN to edit customer information:');
+}
+
+function deleteCustomer() {
+    const userRole = localStorage.getItem('userRole');
+    if (userRole !== 'admin') {
+        alert('Only administrators can delete customers.');
+        return;
+    }
+    
+    openPinModal(() => {
+        if (confirm('Are you sure you want to delete this customer? This action cannot be undone.')) {
+            showLoading('Deleting customer...');
+            
+            // In production, delete from Firestore
+            setTimeout(() => {
+                hideLoading();
+                alert('Customer deleted successfully!');
+                window.location.href = 'dashboard.html';
+            }, 1000);
+        }
+    }, 'Enter PIN to delete customer:');
+}
+
+function shareProfile() {
+    const customerId = getCustomerIdFromURL();
+    const profileUrl = window.location.href;
+    const message = `Check out this customer profile: ${profileUrl}`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    
+    window.open(whatsappUrl, '_blank');
+}
+
+async function downloadPDF() {
+    showLoading('Generating PDF...');
+    
+    try {
+        // Wait for libraries to load
+        await waitForLibraries();
+        
+        const element = document.getElementById('profileContent');
+        
+        // Create a temporary clone for PDF generation
+        const clone = element.cloneNode(true);
+        clone.style.backgroundColor = 'white';
+        clone.style.color = 'black';
+        clone.style.padding = '20px';
+        
+        // Hide navigation and buttons in PDF
+        const noPrintElements = clone.querySelectorAll('.no-print, nav, button');
+        noPrintElements.forEach(el => el.style.display = 'none');
+        
+        document.body.appendChild(clone);
+        
+        // Generate PDF
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        
+        const canvas = await html2canvas(clone, {
+            scale: 2,
+            backgroundColor: '#ffffff'
+        });
+        
+        const imgData = canvas.toDataURL('image/png');
+        const imgWidth = 190;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
+        pdf.save(`customer-profile-${getCustomerIdFromURL()}.pdf`);
+        
+        // Clean up
+        document.body.removeChild(clone);
+        
+    } catch (error) {
+        console.error('PDF generation failed:', error);
+        alert('Failed to generate PDF. Please try again.');
+    } finally {
+        hideLoading();
+    }
+}
+
+function waitForLibraries() {
+    return new Promise((resolve) => {
+        if (window.html2canvas && window.jspdf) {
+            resolve();
+        } else {
+            setTimeout(() => waitForLibraries().then(resolve), 100);
+        }
+    });
+}
+
+// ==================== UTILITY FUNCTIONS ====================
+function showLoading(message = 'Loading...') {
+    if (loadingOverlay) {
+        const messageElement = loadingOverlay.querySelector('p');
+        if (messageElement && message) {
+            messageElement.textContent = message;
+        }
+        loadingOverlay.classList.remove('hidden');
+    }
+}
+
+function hideLoading() {
+    if (loadingOverlay) {
+        loadingOverlay.classList.add('hidden');
+    }
+}
+
+// Format currency
+function formatCurrency(amount) {
+    return '₹' + amount.toLocaleString('en-IN');
+}
+
+// Get month name
+function getMonthName(monthNumber) {
+    const months = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[monthNumber - 1] || '';
+}
+
+// Calculate days between dates
+function daysBetween(date1, date2) {
+    const diffTime = Math.abs(new Date(date2) - new Date(date1));
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+}
+
+// Generate unique ID
+function generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
+// ==================== FIREBASE FUNCTIONS (Placeholders) ====================
+// These functions would be implemented with actual Firebase calls in production
+
+async function saveCustomerToFirestore(customerData) {
+    // In production: return db.collection('customers').add(customerData);
+    console.log('Saving to Firestore:', customerData);
+    return { id: generateId() };
+}
+
+async function getCustomerFromFirestore(customerId) {
+    // In production: return db.collection('customers').doc(customerId).get();
+    console.log('Fetching from Firestore:', customerId);
+    return { exists: true, data: () => ({}) };
+}
+
+async function updateCustomerInFirestore(customerId, updates) {
+    // In production: return db.collection('customers').doc(customerId).update(updates);
+    console.log('Updating in Firestore:', customerId, updates);
+    return true;
+}
+
+async function deleteCustomerFromFirestore(customerId) {
+    // In production: return db.collection('customers').doc(customerId).delete();
+    console.log('Deleting from Firestore:', customerId);
+    return true;
+}
+
+async function getAllCustomersFromFirestore() {
+    // In production: return db.collection('customers').get();
+    console.log('Fetching all customers from Firestore');
+    return { docs: [] };
+}
+
+// Export functions for use in HTML
+window.logout = logout;
+window.closePinModal = closePinModal;
+window.verifyPin = verifyPin;
+window.refreshData = refreshData;
+window.markPaid = markPaid;
+window.editCustomer = editCustomer;
+window.deleteCustomer = deleteCustomer;
+window.shareProfile = shareProfile;
+window.downloadPDF = downloadPDF;
+window.formatCNIC = formatCNIC;
+window.calculateInstallments = calculateInstallments;
+window.calculateRemaining = calculateRemaining;
+window.closeSuccessModal = closeSuccessModal;
