@@ -1,11 +1,13 @@
 // Firebase Configuration (Replace with your own config)
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+   apiKey: "AIzaSyCujiWEwr3657z7L6mI9xmIwMZjYJchoJc",
+   authDomain: "naeem-khan-f7d4f.firebaseapp.com",
+   databaseURL: "https://naeem-khan-f7d4f-default-rtdb.firebaseio.com",
+   projectId: "naeem-khan-f7d4f",
+   storageBucket: "naeem-khan-f7d4f.firebasestorage.app",
+   messagingSenderId: "20329827636",
+   appId: "1:20329827636:web:6bc934919ca09e683f2961",
+   measurementId: "G-DHCVE17PDS"
 };
 
 // Initialize Firebase
