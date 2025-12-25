@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Customer Profile</title>
+    <title>Customer Profile - Naeem Khan Traders</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -10,18 +10,19 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body class="pb-24">
-    <div class="max-w-2xl mx-auto p-4 mt-4" id="profile-content">
-        <a href="dashboard.html" class="inline-block mb-4 text-gray-400 hover:text-white no-print">
-            <i class="fas fa-arrow-left"></i> Back to Dashboard
+    <div class="max-w-4xl mx-auto p-4 mt-4" id="profile-content">
+        <a href="dashboard.html" class="inline-block mb-4 text-gray-400 hover:text-white no-print transition">
+            <i class="fas fa-arrow-left mr-2"></i> Back to Dashboard
         </a>
         
         <div class="glass-panel p-0 rounded-2xl overflow-hidden border border-gray-700">
-            <div class="bg-gradient-to-r from-purple-900 to-blue-900 p-6 flex items-center gap-4">
+            <div class="bg-gradient-to-r from-purple-900 to-blue-900 p-6 flex flex-col md:flex-row items-center gap-6">
                 <img id="p-img" src="" class="w-24 h-24 rounded-full border-4 border-white object-cover bg-gray-800 shadow-lg">
-                <div>
+                <div class="text-center md:text-left">
                     <h1 id="p-name" class="text-2xl font-bold text-white">Loading...</h1>
                     <p class="text-sm text-purple-200">ID: <span id="p-custom-id" class="font-bold">...</span></p>
                     <p id="p-phone" class="text-sm text-gray-300">...</p>
+                    <p id="p-email" class="text-sm text-gray-300">...</p>
                 </div>
             </div>
 
@@ -31,47 +32,76 @@
                 <div><p class="text-xs text-gray-400 uppercase">Remaining</p><p id="p-remaining" class="font-bold text-red-400 text-lg">0</p></div>
             </div>
             
-            <div class="bg-gray-900 h-3 w-full"><div id="p-bar" class="bg-green-500 h-3" style="width: 0%"></div></div>
+            <div class="bg-gray-900 h-3 w-full"><div id="p-bar" class="bg-green-500 h-3 transition-all duration-1000" style="width: 0%"></div></div>
 
             <div class="p-6">
-                <div class="grid grid-cols-2 gap-4 mb-6 text-sm bg-gray-800/50 p-4 rounded-xl">
-                    <div class="col-span-2 text-center">
-                        <p class="text-gray-500 text-xs mb-1">CNIC Photo</p>
-                        <img id="p-cnic-img" src="" class="h-32 mx-auto rounded border border-gray-600 object-contain">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-gray-800/50 p-4 rounded-xl">
+                        <h4 class="text-gray-500 text-xs uppercase mb-2">Contact Information</h4>
+                        <p class="text-white"><i class="fas fa-map-marker-alt mr-2 text-gray-500"></i><span id="p-address">Not provided</span></p>
+                        <p class="text-white mt-2"><i class="fas fa-phone mr-2 text-gray-500"></i><span id="p-phone-full">...</span></p>
+                        <p class="text-white mt-2"><i class="fas fa-envelope mr-2 text-gray-500"></i><span id="p-email-full">Not provided</span></p>
                     </div>
-                    <div><p class="text-gray-500 text-xs">Address</p><p id="p-address" class="text-white truncate">...</p></div>
-                    <div><p class="text-gray-500 text-xs">Guarantor</p><p id="p-g-name" class="text-white">...</p></div>
-                    <div><p class="text-gray-500 text-xs">G. Phone</p><p id="p-g-phone" class="text-white">...</p></div>
+                    
+                    <div class="bg-gray-800/50 p-4 rounded-xl">
+                        <h4 class="text-gray-500 text-xs uppercase mb-2">Guarantor Information</h4>
+                        <p class="text-white"><i class="fas fa-user-shield mr-2 text-gray-500"></i><span id="p-g-name">Not provided</span></p>
+                        <p class="text-white mt-2"><i class="fas fa-phone mr-2 text-gray-500"></i><span id="p-g-phone">Not provided</span></p>
+                        <p class="text-white mt-2"><i class="fas fa-link mr-2 text-gray-500"></i><span id="p-g-relation">Not provided</span></p>
+                    </div>
                 </div>
 
-                <h3 class="font-bold text-gold mb-3 text-sm uppercase">Installment Schedule</h3>
+                <div class="text-center mb-6">
+                    <p class="text-gray-500 text-xs mb-2">CNIC Photos</p>
+                    <div class="flex flex-wrap justify-center gap-4">
+                        <img id="p-cnic-img" src="" class="h-32 rounded border border-gray-600 object-contain bg-gray-800 p-2">
+                        <img id="p-cnic-back-img" src="" class="h-32 rounded border border-gray-600 object-contain bg-gray-800 p-2" style="display: none;">
+                    </div>
+                </div>
+
+                <h3 class="font-bold text-gold mb-3 text-sm uppercase">
+                    <i class="fas fa-calendar-check mr-2"></i>Installment Schedule
+                </h3>
                 <div class="overflow-hidden rounded-lg border border-gray-700">
                     <table class="w-full text-left text-sm">
                         <thead class="bg-gray-900 text-gray-400">
                             <tr>
-                                <th class="p-3">Date</th>
+                                <th class="p-3">Installment</th>
+                                <th class="p-3">Due Date</th>
                                 <th class="p-3">Amount</th>
                                 <th class="p-3">Status</th>
                                 <th class="p-3 no-print">Action</th>
                             </tr>
                         </thead>
                         <tbody id="installment-rows" class="text-gray-300 divide-y divide-gray-800">
-                            </tbody>
+                            <tr><td colspan="5" class="p-3 text-center">Loading installment schedule...</td></tr>
+                        </tbody>
                     </table>
                 </div>
+                
+                <div id="p-notes" class="mt-6 p-4 bg-gray-800/30 rounded-lg border border-gray-700">
+                    <h4 class="text-gray-500 text-xs uppercase mb-2">Additional Notes</h4>
+                    <p class="text-white text-sm" id="p-notes-text">No additional notes provided.</p>
+                </div>
             </div>
-            <div class="text-center p-2 text-xs text-gray-500 bg-gray-900">System Generated Report</div>
+            <div class="text-center p-2 text-xs text-gray-500 bg-gray-900">
+                <i class="fas fa-clock mr-1"></i>Created: <span id="p-created">...</span>
+            </div>
         </div>
     </div>
 
-    <div class="fixed bottom-0 w-full bg-gray-900 p-4 flex gap-4 justify-center no-print border-t border-gray-800 z-50">
-        <button id="whatsapp-btn" class="bg-green-600 text-white px-6 py-3 rounded-xl font-bold flex-1 max-w-xs shadow-lg">Share WhatsApp</button>
-        <button onclick="downloadPDF()" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold flex-1 max-w-xs shadow-lg">Download PDF</button>
+    <div class="fixed bottom-0 w-full bg-gray-900/95 p-4 flex gap-4 justify-center no-print border-t border-gray-800 z-50 backdrop-blur-sm">
+        <button id="whatsapp-btn" class="bg-green-600 hover:bg-green-500 text-white px-6 py-3 rounded-xl font-bold flex-1 max-w-xs shadow-lg transition-all duration-300 hover:scale-[1.05] active:scale-[0.95]">
+            <i class="fab fa-whatsapp mr-2"></i>Share WhatsApp
+        </button>
+        <button onclick="downloadPDF()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-bold flex-1 max-w-xs shadow-lg transition-all duration-300 hover:scale-[1.05] active:scale-[0.95]">
+            <i class="fas fa-download mr-2"></i>Download PDF
+        </button>
     </div>
 
     <script type="module">
         import './script.js';
-        window.addEventListener('load', () => setTimeout(window.loadProfile, 1000));
+        window.addEventListener('load', () => setTimeout(window.loadProfile, 800));
     </script>
 </body>
 </html>
