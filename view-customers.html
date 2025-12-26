@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Customers | Installment System</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <h1>View Customers</h1>
+            </div>
+            <div class="nav-menu">
+                <a href="dashboard.html" class="nav-link">Dashboard</a>
+                <a href="add-customer.html" class="nav-link">Add Customer</a>
+                <a href="view-customers.html" class="nav-link active">View Customers</a>
+                <a href="reports.html" class="nav-link">Reports</a>
+                <button id="logoutBtn" class="btn-logout">Logout</button>
+            </div>
+        </div>
+    </nav>
+    
+    <main class="container">
+        <div class="page-header">
+            <h2>All Customers</h2>
+            <p>View, search, and manage all installment customers</p>
+        </div>
+        
+        <!-- Controls -->
+        <div class="controls-bar">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search by name, phone, or product...">
+                <button id="searchBtn">Search</button>
+            </div>
+            <div class="action-buttons">
+                <button id="downloadCsvBtn" class="btn-download">Download CSV</button>
+                <button id="downloadExcelBtn" class="btn-download">Download Excel</button>
+                <button id="refreshBtn" class="btn-refresh">Refresh</button>
+            </div>
+        </div>
+        
+        <!-- Customers Table -->
+        <div class="table-container">
+            <table id="customersTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Product</th>
+                        <th>Total Amount</th>
+                        <th>Paid</th>
+                        <th>Remaining</th>
+                        <th>Due Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="customersTableBody">
+                    <tr>
+                        <td colspan="10">Loading customers...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div id="tableMessage" class="message"></div>
+        
+        <!-- Statistics -->
+        <div class="table-stats">
+            <p>Showing <span id="showingCount">0</span> of <span id="totalCount">0</span> customers</p>
+            <p>Total Pending: <strong id="totalPending">₹0</strong></p>
+        </div>
+    </main>
+    
+    <script src="script.js"></script>
+    <script>
+        let allCustomers = [];
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication
+            firebase.auth().onAuthStateChanged((user) => {
+                if (!user) {
+                    window.location.href = 'index.html';
+                } else {
+                    loadCustomers();
+                }
+            });
+            
+            // Logout button
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                firebase.auth().signOut().then(() => {
+                    window.location.href = 'index.html';
+                });
+            });
+            
+            // Refresh button
+            document.getElementById('refreshBtn').addEventListener('click', loadCustomers);
+            
+            // Search functionality
+            document.getElementById('searchBtn').addEventListener('click', filterCustomers);
+            document.getElementById('searchInput').addEventListener('keyup', filterCustomers);
+            
+            // Download buttons
+            document.getElementById('downloadCsvBtn').addEventListener('click', () => downloadData('csv'));
+            document.getElementById('downloadExcelBtn').addEventListener('click', () => downloadData('excel'));
+            
+            // Load customers from Firestore
+            async function loadCustomers() {
+                const messageEl = document.getElementById('tableMessage');
+                const tbody = document.getElementById('customersTableBody');
+                
+                messageEl.textContent = 'Loading customers...';
+                messageEl.className = 'message info';
+                tbody.innerHTML = '<tr><td colspan="10">Loading...</td></tr>';
+                
+                try {
+                    const db = firebase.firestore();
+                    const snapshot = await db.collection('customers').orderBy('createdDate', 'desc').get();
+                    
+                    allCustomers = [];
+                    snapshot.forEach(doc => {
+                        allCustomers.push({
+                            id: doc.id,
+                            ...doc.data()
+                        });
+                    });
+                    
+                    displayCustomers(allCustomers);
+                    
+                    messageEl.textContent = `Loaded ${allCustomers.length} customers`;
+                    messageEl.className = 'message success';
+                    
+                } catch (error) {
+                    messageEl.textContent = 'Error: ' + error.message;
+                    messageEl.className = 'message error';
+                    tbody.innerHTML = '<tr><td colspan="10">Error loading data</td></tr>';
+                }
+            }
+            
+            // Display customers in table
+            function displayCustomers(customers) {
+                const tbody = document.getElementById('customersTableBody');
+                const totalPending = customers.reduce((sum, c) => sum + (parseFloat(c.remainingAmount) || 0), 0);
+                
+                if (customers.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="10">No customers found</td></tr>';
+                } else {
+                    tbody.innerHTML = customers.map(customer => `
+                        <tr>
+                            <td>${customer.id.substring(0, 8)}</td>
+                            <td><strong>${customer.name}</strong></td>
+                            <td>${customer.phone}</td>
+                            <td>${customer.product}</td>
+                            <td>₹${parseFloat(customer.totalAmount).toFixed(2)}</td>
+                            <td>₹${parseFloat(customer.paidAmount).toFixed(2)}</td>
+                            <td>₹${parseFloat(customer.remainingAmount).toFixed(2)}</td>
+                            <td class="${isOverdue(customer.dueDate) ? 'overdue' : ''}">
+                                ${customer.dueDate}
+                            </td>
+                            <td><span class="status-badge ${customer.status.toLowerCase()}">${customer.status}</span></td>
+                            <td>
+                                <button onclick="viewCustomer('${customer.id}')" class="btn-small">View</button>
+                                <button onclick="editCustomer('${customer.id}')" class="btn-small">Edit</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+                
+                // Update statistics
+                document.getElementById('showingCount').textContent = customers.length;
+                document.getElementById('totalCount').textContent = allCustomers.length;
+                document.getElementById('totalPending').textContent = `₹${totalPending.toFixed(2)}`;
+            }
+            
+            // Filter customers based on search
+            function filterCustomers() {
+                const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+                
+                if (!searchTerm) {
+                    displayCustomers(allCustomers);
+                    return;
+                }
+                
+                const filtered = allCustomers.filter(customer =>
+                    customer.name.toLowerCase().includes(searchTerm) ||
+                    customer.phone.includes(searchTerm) ||
+                    customer.product.toLowerCase().includes(searchTerm) ||
+                    customer.email.toLowerCase().includes(searchTerm)
+                );
+                
+                displayCustomers(filtered);
+            }
+            
+            // Check if due date is overdue
+            function isOverdue(dueDate) {
+                const today = new Date();
+                const due = new Date(dueDate);
+                return due < today;
+            }
+            
+            // Download data
+            async function downloadData(format) {
+                try {
+                    const db = firebase.firestore();
+                    const snapshot = await db.collection('customers').get();
+                    const customers = [];
+                    
+                    snapshot.forEach(doc => {
+                        customers.push({ id: doc.id, ...doc.data() });
+                    });
+                    
+                    if (customers.length === 0) {
+                        alert('No data to download');
+                        return;
+                    }
+                    
+                    if (format === 'csv') {
+                        downloadCsv(customers);
+                    } else {
+                        downloadExcel(customers);
+                    }
+                    
+                } catch (error) {
+                    alert('Download error: ' + error.message);
+                }
+            }
+            
+            // Download CSV
+            function downloadCsv(customers) {
+                let csvContent = 'ID,Name,Email,Phone,Product,Total Amount,Down Payment,Paid Amount,Remaining Amount,Installments,Start Date,Due Date,Status\n';
+                
+                customers.forEach(customer => {
+                    csvContent += `"${customer.id}","${customer.name}","${customer.email}","${customer.phone}","${customer.product}",${customer.totalAmount},${customer.downPayment},${customer.paidAmount},${customer.remainingAmount},${customer.installmentCount},"${customer.startDate}","${customer.dueDate}","${customer.status}"\n`;
+                });
+                
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `customers_${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+            
+            // Download Excel (simulated with CSV for simplicity)
+            function downloadExcel(customers) {
+                downloadCsv(customers); // For now, same as CSV
+            }
+        });
+        
+        // Global functions for buttons
+        window.viewCustomer = function(id) {
+            alert('View customer ' + id + ' - This feature can be extended');
+        };
+        
+        window.editCustomer = function(id) {
+            alert('Edit customer ' + id + ' - This feature can be extended');
+        };
+    </script>
+</body>
+</html>
