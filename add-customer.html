@@ -2,69 +2,234 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Add Customer Record</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Customer | Installment System</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-firestore-compat.js"></script>
 </head>
 <body>
-    <div class="max-w-5xl mx-auto p-4 my-8">
-        <div class="glass-panel p-6 md:p-8 rounded-2xl border-t-4 border-purple-500">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl md:text-3xl font-bold text-white">Add Customer</h2>
-                <a href="dashboard.html" class="bg-gray-700 text-gray-300 px-4 py-2 rounded hover:text-white">Cancel</a>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <h1>Add New Customer</h1>
             </div>
-
-            <form onsubmit="submitCustomer(event)">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    
-                    <div class="col-span-1 md:col-span-2 bg-purple-900/40 p-4 rounded border border-purple-500">
-                        <label class="block text-purple-300 font-bold mb-2 uppercase tracking-wide">Customer ID (Manual)</label>
-                        <input type="text" id="customId" class="w-full bg-gray-900 border border-purple-500 rounded p-3 text-white font-mono text-xl" placeholder="e.g. 5001, NK-100" required>
-                    </div>
-
-                    <div class="col-span-1 md:col-span-2"><h3 class="text-white font-bold border-b border-gray-700 pb-2">1. Personal Details</h3></div>
-                    
-                    <div><label class="block text-gray-400 text-sm mb-1">Full Name</label><input type="text" id="name" class="w-full bg-gray-800 border border-gray-600 rounded p-3 text-white" required></div>
-                    <div><label class="block text-gray-400 text-sm mb-1">Father Name</label><input type="text" id="fatherName" class="w-full bg-gray-800 border border-gray-600 rounded p-3 text-white"></div>
-                    <div><label class="block text-gray-400 text-sm mb-1">CNIC No</label><input type="text" id="cnic" class="w-full bg-gray-800 border border-gray-600 rounded p-3 text-white"></div>
-                    <div><label class="block text-gray-400 text-sm mb-1">Phone No</label><input type="tel" id="phone" class="w-full bg-gray-800 border border-gray-600 rounded p-3 text-white"></div>
-                    <div class="md:col-span-2"><label class="block text-gray-400 text-sm mb-1">Residential Address</label><input type="text" id="address" class="w-full bg-gray-800 border border-gray-600 rounded p-3 text-white"></div>
-                    <div class="md:col-span-2"><label class="block text-gray-400 text-sm mb-1">Work/Shop Address</label><input type="text" id="workAddress" class="w-full bg-gray-800 border border-gray-600 rounded p-3 text-white"></div>
-
-                    <div class="col-span-1 md:col-span-2 mt-2"><h3 class="text-blue-400 font-bold border-b border-gray-700 pb-2">2. Images (Auto-Compressed)</h3></div>
-                    <div>
-                        <label class="block text-gray-400 text-sm mb-1"><i class="fas fa-camera"></i> Customer Photo</label>
-                        <input type="file" id="photo" accept="image/*" class="w-full bg-gray-800 text-gray-300 p-2 rounded border border-gray-600">
-                        <p class="text-gray-500 text-xs mt-1">Max 1MB, will auto-compress</p>
-                    </div>
-                    <div>
-                        <label class="block text-gray-400 text-sm mb-1"><i class="fas fa-id-card"></i> CNIC Photo</label>
-                        <input type="file" id="cnicPhoto" accept="image/*" class="w-full bg-gray-800 text-gray-300 p-2 rounded border border-gray-600">
-                        <p class="text-gray-500 text-xs mt-1">Max 1MB, will auto-compress</p>
-                    </div>
-
-                    <div class="col-span-1 md:col-span-2 mt-2"><h3 class="text-gold font-bold border-b border-gray-700 pb-2">3. Product & Payment</h3></div>
-                    <div class="md:col-span-2"><label class="block text-gold text-sm mb-1">Product Name</label><input type="text" id="productName" class="w-full bg-gray-900 border border-yellow-600/50 rounded p-3 text-white"></div>
-                    <div><label class="block text-gold text-sm mb-1">Total Price (PKR)</label><input type="number" id="total" class="w-full bg-gray-900 border border-yellow-600 rounded p-3 text-white font-bold" required></div>
-                    <div><label class="block text-green-400 text-sm mb-1">Advance (PKR)</label><input type="number" id="advance" class="w-full bg-gray-900 border border-green-600 rounded p-3 text-white font-bold" required></div>
-                    <div><label class="block text-white text-sm mb-1">Monthly Installment (PKR)</label><input type="number" id="monthly" class="w-full bg-gray-800 border border-gray-600 rounded p-3 text-white" required></div>
-                    <div><label class="block text-gray-400 text-sm mb-1">Date</label><input type="date" id="date" class="w-full bg-gray-800 border border-gray-600 rounded p-3 text-white" required></div>
-
-                    <div class="col-span-1 md:col-span-2 mt-2"><h3 class="text-green-400 font-bold border-b border-gray-700 pb-2">4. Guarantor Info</h3></div>
-                    <div><input type="text" id="g-name" class="w-full bg-gray-800 border border-gray-600 rounded p-3 text-white" placeholder="Name"></div>
-                    <div><input type="tel" id="g-phone" class="w-full bg-gray-800 border border-gray-600 rounded p-3 text-white" placeholder="Phone"></div>
-                    <div><input type="text" id="g-cnic" class="w-full bg-gray-800 border border-gray-600 rounded p-3 text-white" placeholder="CNIC"></div>
-                    <div><input type="text" id="g-address" class="w-full bg-gray-800 border border-gray-600 rounded p-3 text-white" placeholder="Address"></div>
-                </div>
-
-                <button type="submit" id="submitBtn" class="w-full btn-primary text-white font-bold py-4 rounded-xl text-lg shadow-lg">Save Record</button>
-            </form>
+            <div class="nav-menu">
+                <a href="dashboard.html" class="nav-link">Dashboard</a>
+                <a href="add-customer.html" class="nav-link active">Add Customer</a>
+                <a href="view-customers.html" class="nav-link">View Customers</a>
+                <a href="reports.html" class="nav-link">Reports</a>
+                <button id="logoutBtn" class="btn-logout">Logout</button>
+            </div>
         </div>
-    </div>
-    <script type="module" src="script.js"></script>
+    </nav>
+    
+    <main class="container">
+        <div class="page-header">
+            <h2>Add New Installment Customer</h2>
+            <p>Fill all details for new installment account</p>
+        </div>
+        
+        <div class="form-container">
+            <form id="customerForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="name">Customer Full Name *</label>
+                        <input type="text" id="name" placeholder="John Smith" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" placeholder="customer@example.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="phone">Phone Number *</label>
+                        <input type="tel" id="phone" placeholder="9876543210" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="address">Address</label>
+                        <textarea id="address" placeholder="Full address" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="product">Product Name *</label>
+                        <input type="text" id="product" placeholder="LED TV, Refrigerator, etc." required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="productPrice">Product Price (₹) *</label>
+                        <input type="number" id="productPrice" placeholder="25000" step="0.01" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="downPayment">Down Payment (₹) *</label>
+                        <input type="number" id="downPayment" placeholder="5000" step="0.01" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="installmentAmount">Monthly Installment (₹) *</label>
+                        <input type="number" id="installmentAmount" placeholder="2000" step="0.01" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="installmentCount">Total Installments (Months) *</label>
+                        <input type="number" id="installmentCount" placeholder="12" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="startDate">Installment Start Date *</label>
+                        <input type="date" id="startDate" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="dueDate">Next Due Date *</label>
+                        <input type="date" id="dueDate" required>
+                    </div>
+                </div>
+                
+                <div class="form-summary">
+                    <h3>Payment Summary</h3>
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <span>Total Amount:</span>
+                            <strong id="totalDisplay">₹0</strong>
+                        </div>
+                        <div class="summary-item">
+                            <span>Down Payment:</span>
+                            <strong id="downDisplay">₹0</strong>
+                        </div>
+                        <div class="summary-item">
+                            <span>Remaining Amount:</span>
+                            <strong id="remainingDisplay">₹0</strong>
+                        </div>
+                        <div class="summary-item">
+                            <span>Monthly Installment:</span>
+                            <strong id="monthlyDisplay">₹0</strong>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn-submit">Save Customer Record</button>
+                    <button type="button" class="btn-cancel" onclick="window.location.href='dashboard.html'">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+            
+            <div id="formMessage" class="message"></div>
+        </div>
+    </main>
+    
+    <script src="script.js"></script>
     <script>
-        document.getElementById('date').valueAsDate = new Date();
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication
+            firebase.auth().onAuthStateChanged((user) => {
+                if (!user) {
+                    window.location.href = 'index.html';
+                }
+            });
+            
+            // Logout button
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                firebase.auth().signOut().then(() => {
+                    window.location.href = 'index.html';
+                });
+            });
+            
+            // Set today's date as default
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('startDate').value = today;
+            
+            // Calculate next month for due date
+            const nextMonth = new Date();
+            nextMonth.setMonth(nextMonth.getMonth() + 1);
+            document.getElementById('dueDate').value = nextMonth.toISOString().split('T')[0];
+            
+            // Calculate summary automatically
+            function calculateSummary() {
+                const price = parseFloat(document.getElementById('productPrice').value) || 0;
+                const down = parseFloat(document.getElementById('downPayment').value) || 0;
+                const monthly = parseFloat(document.getElementById('installmentAmount').value) || 0;
+                const months = parseInt(document.getElementById('installmentCount').value) || 0;
+                
+                const total = price;
+                const remaining = total - down;
+                const calculatedMonthly = remaining / (months || 1);
+                
+                document.getElementById('totalDisplay').textContent = `₹${total.toFixed(2)}`;
+                document.getElementById('downDisplay').textContent = `₹${down.toFixed(2)}`;
+                document.getElementById('remainingDisplay').textContent = `₹${remaining.toFixed(2)}`;
+                document.getElementById('monthlyDisplay').textContent = `₹${calculatedMonthly.toFixed(2)}`;
+                
+                // Auto-update installment amount if not set
+                if (!document.getElementById('installmentAmount').value && months > 0) {
+                    document.getElementById('installmentAmount').value = calculatedMonthly.toFixed(2);
+                }
+            }
+            
+            // Add event listeners for auto-calculation
+            ['productPrice', 'downPayment', 'installmentCount'].forEach(id => {
+                document.getElementById(id).addEventListener('input', calculateSummary);
+            });
+            
+            // Initial calculation
+            calculateSummary();
+            
+            // Form submission
+            document.getElementById('customerForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const formMessage = document.getElementById('formMessage');
+                formMessage.textContent = 'Saving customer data...';
+                formMessage.className = 'message info';
+                
+                try {
+                    const db = firebase.firestore();
+                    const customerData = {
+                        name: document.getElementById('name').value,
+                        email: document.getElementById('email').value,
+                        phone: document.getElementById('phone').value,
+                        address: document.getElementById('address').value,
+                        product: document.getElementById('product').value,
+                        totalAmount: parseFloat(document.getElementById('productPrice').value),
+                        downPayment: parseFloat(document.getElementById('downPayment').value),
+                        installmentAmount: parseFloat(document.getElementById('installmentAmount').value),
+                        installmentCount: parseInt(document.getElementById('installmentCount').value),
+                        startDate: document.getElementById('startDate').value,
+                        dueDate: document.getElementById('dueDate').value,
+                        paidAmount: parseFloat(document.getElementById('downPayment').value),
+                        remainingAmount: parseFloat(document.getElementById('productPrice').value) - 
+                                       parseFloat(document.getElementById('downPayment').value),
+                        status: 'Active',
+                        createdDate: new Date().toISOString(),
+                        lastUpdated: new Date().toISOString()
+                    };
+                    
+                    // Save to Firestore
+                    await db.collection('customers').add(customerData);
+                    
+                    formMessage.textContent = 'Customer saved successfully! Redirecting...';
+                    formMessage.className = 'message success';
+                    
+                    // Clear form
+                    document.getElementById('customerForm').reset();
+                    
+                    // Redirect after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = 'view-customers.html';
+                    }, 2000);
+                    
+                } catch (error) {
+                    formMessage.textContent = 'Error: ' + error.message;
+                    formMessage.className = 'message error';
+                }
+            });
+        });
     </script>
 </body>
 </html>
