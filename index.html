@@ -7,57 +7,108 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-firestore-compat.js"></script>
 </head>
 <body class="login-page">
     <div class="login-container">
         <div class="login-box">
-            <h1>Installment Management System</h1>
-            <h2>Admin Login</h2>
+            <div class="login-header">
+                <div class="logo">💰</div>
+                <h1>Installment Management System</h1>
+                <p>Admin Login - Secure Access Only</p>
+            </div>
             
-            <form id="loginForm">
-                <div class="input-group">
-                    <label for="email">Admin Email:</label>
-                    <input type="email" id="email" placeholder="admin@example.com" required>
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="loginEmail">Admin Email Address</label>
+                    <input type="email" id="loginEmail" placeholder="admin@yourbusiness.com" required>
                 </div>
                 
-                <div class="input-group">
-                    <label for="password">Password:</label>
-                    <input type="password" id="password" placeholder="Enter password" required>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter your password" required>
                 </div>
                 
-                <button type="submit" class="btn-login">Login to Dashboard</button>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary btn-login">
+                        <span class="btn-text">Login to Dashboard</span>
+                        <span class="btn-loader" style="display:none;">Logging in...</span>
+                    </button>
+                </div>
             </form>
             
-            <div id="loginMessage" class="message"></div>
+            <div id="loginMessage" class="message-box"></div>
             
-            <div class="login-info">
-                <p><strong>Note:</strong> Sirf authorized admin hi login kar sakte hain.</p>
+            <div class="login-footer">
+                <p><strong>Note:</strong> This system is for authorized administrators only.</p>
+                <p>All activities are logged and monitored.</p>
             </div>
         </div>
     </div>
     
-    <script src="script.js"></script>
+    <script src="firebase-config.js"></script>
     <script>
-        // Login page specific code
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const messageEl = document.getElementById('loginMessage');
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginForm = document.getElementById('loginForm');
+            const loginMessage = document.getElementById('loginMessage');
+            const btnText = document.querySelector('.btn-text');
+            const btnLoader = document.querySelector('.btn-loader');
             
-            messageEl.textContent = 'Logging in...';
-            messageEl.className = 'message info';
-            
-            firebase.auth().signInWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    // Success - redirect to dashboard
+            // Check if already logged in
+            firebase.auth().onAuthStateChanged((user) => {
+                if (user) {
                     window.location.href = 'dashboard.html';
-                })
-                .catch((error) => {
-                    messageEl.textContent = 'Error: ' + error.message;
-                    messageEl.className = 'message error';
-                });
+                }
+            });
+            
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const email = document.getElementById('loginEmail').value.trim();
+                const password = document.getElementById('loginPassword').value;
+                
+                // Show loading
+                btnText.style.display = 'none';
+                btnLoader.style.display = 'inline-block';
+                loginMessage.innerHTML = '';
+                
+                try {
+                    const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+                    
+                    // Success
+                    loginMessage.innerHTML = `
+                        <div class="message success">
+                            ✅ Login successful! Redirecting to dashboard...
+                        </div>
+                    `;
+                    
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1500);
+                    
+                } catch (error) {
+                    // Reset button
+                    btnText.style.display = 'inline-block';
+                    btnLoader.style.display = 'none';
+                    
+                    // Show error
+                    let errorMsg = 'Login failed. ';
+                    if (error.code === 'auth/user-not-found') {
+                        errorMsg = 'Admin account not found.';
+                    } else if (error.code === 'auth/wrong-password') {
+                        errorMsg = 'Incorrect password.';
+                    } else if (error.code === 'auth/invalid-email') {
+                        errorMsg = 'Invalid email format.';
+                    } else {
+                        errorMsg += error.message;
+                    }
+                    
+                    loginMessage.innerHTML = `
+                        <div class="message error">
+                            ❌ ${errorMsg}
+                        </div>
+                    `;
+                }
+            });
         });
     </script>
 </body>
