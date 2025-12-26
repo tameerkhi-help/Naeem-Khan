@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports | Installment System</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <h1>Reports & Analytics</h1>
+            </div>
+            <div class="nav-menu">
+                <a href="dashboard.html" class="nav-link">Dashboard</a>
+                <a href="add-customer.html" class="nav-link">Add Customer</a>
+                <a href="view-customers.html" class="nav-link">View Customers</a>
+                <a href="reports.html" class="nav-link active">Reports</a>
+                <button id="logoutBtn" class="btn-logout">Logout</button>
+            </div>
+        </div>
+    </nav>
+    
+    <main class="container">
+        <div class="page-header">
+            <h2>Installment Reports</h2>
+            <p>Analytics and detailed reports of your installment business</p>
+        </div>
+        
+        <!-- Report Filters -->
+        <div class="report-filters">
+            <div class="filter-group">
+                <label>Report Period:</label>
+                <select id="periodSelect">
+                    <option value="month">This Month</option>
+                    <option value="quarter">This Quarter</option>
+                    <option value="year">This Year</option>
+                    <option value="all">All Time</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>From:</label>
+                <input type="date" id="dateFrom">
+            </div>
+            <div class="filter-group">
+                <label>To:</label>
+                <input type="date" id="dateTo">
+            </div>
+            <button id="generateReport" class="btn-submit">Generate Report</button>
+        </div>
+        
+        <!-- Charts -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3>Revenue Overview</h3>
+                <canvas id="revenueChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>Customer Status</h3>
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Summary Cards -->
+        <div class="report-summary">
+            <div class="summary-card">
+                <h4>Total Revenue</h4>
+                <p id="totalRevenue">₹0</p>
+            </div>
+            <div class="summary-card">
+                <h4>Active Customers</h4>
+                <p id="activeCustomers">0</p>
+            </div>
+            <div class="summary-card">
+                <h4>Overdue Payments</h4>
+                <p id="overduePayments">0</p>
+            </div>
+            <div class="summary-card">
+                <h4>Avg. Installment</h4>
+                <p id="avgInstallment">₹0</p>
+            </div>
+        </div>
+        
+        <!-- Detailed Report -->
+        <div class="detailed-report">
+            <h3>Detailed Transaction Report</h3>
+            <div class="table-container">
+                <table id="reportTable">
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th>New Customers</th>
+                            <th>Total Amount</th>
+                            <th>Received</th>
+                            <th>Pending</th>
+                            <th>Completion %</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportTableBody">
+                        <tr>
+                            <td colspan="6">Select filters and generate report</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Export Options -->
+        <div class="export-options">
+            <h3>Export Report</h3>
+            <div class="export-buttons">
+                <button class="btn-export" onclick="exportReport('pdf')">Export as PDF</button>
+                <button class="btn-export" onclick="exportReport('excel')">Export as Excel</button>
+                <button class="btn-export" onclick="exportReport('print')">Print Report</button>
+            </div>
+        </div>
+    </main>
+    
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication
+            firebase.auth().onAuthStateChanged((user) => {
+                if (!user) {
+                    window.location.href = 'index.html';
+                } else {
+                    loadReportData();
+                }
+            });
+            
+            // Logout button
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                firebase.auth().signOut().then(() => {
+                    window.location.href = 'index.html';
+                });
+            });
+            
+            // Generate report button
+            document.getElementById('generateReport').addEventListener('click', loadReportData);
+            
+            // Set default dates
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            
+            document.getElementById('dateFrom').value = firstDay.toISOString().split('T')[0];
+            document.getElementById('dateTo').value = today.toISOString().split('T')[0];
+            
+            // Load report data
+            async function loadReportData() {
+                try {
+                    const db = firebase.firestore();
+                    const snapshot = await db.collection('customers').get();
+                    const customers = [];
+                    
+                    snapshot.forEach(doc => {
+                        customers.push({ id: doc.id, ...doc.data() });
+                    });
+                    
+                    generateCharts(customers);
+                    updateSummary(customers);
+                    generateDetailedReport(customers);
+                    
+                } catch (error) {
+                    console.error('Error loading report data:', error);
+                }
+            }
+            
+            // Generate charts
+            function generateCharts(customers) {
+                // Revenue by month (sample data)
+                const ctx1 = document.getElementById('revenueChart').getContext('2d');
+                new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                        datasets: [{
+                            label: 'Revenue (₹)',
+                            data: [120000, 190000, 150000, 180000, 220000, 250000],
+                            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+                
+                // Customer status chart
+                const ctx2 = document.getElementById('statusChart').getContext('2d');
+                const active = customers.filter(c => c.status === 'Active').length;
+                const completed = customers.filter(c => c.status === 'Completed').length;
+                const overdue = customers.filter(c => {
+                    const dueDate = new Date(c.dueDate);
+                    return dueDate < new Date() && c.status === 'Active';
+                }).length;
+                
+                new Chart(ctx2, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Active', 'Completed', 'Overdue'],
+                        datasets: [{
+                            data: [active, completed, overdue],
+                            backgroundColor: [
+                                'rgba(75, 192, 192, 0.5)',
+                                'rgba(54, 162, 235, 0.5)',
+                                'rgba(255, 99, 132, 0.5)'
+                            ],
+                            borderColor: [
+                                'rgba(75, 192, 192, 1)',
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 99, 132, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true
+                    }
+                });
+            }
+            
+            // Update summary cards
+            function updateSummary(customers) {
+                const totalRevenue = customers.reduce((sum, c) => sum + (parseFloat(c.totalAmount) || 0), 0);
+                const activeCustomers = customers.filter(c => c.status === 'Active').length;
+                const overduePayments = customers.filter(c => {
+                    const dueDate = new Date(c.dueDate);
+                    return dueDate < new Date() && c.status === 'Active';
+                }).length;
+                const avgInstallment = customers.length > 0 ? 
+                    totalRevenue / customers.length : 0;
+                
+                document.getElementById('totalRevenue').textContent = `₹${totalRevenue.toFixed(2)}`;
+                document.getElementById('activeCustomers').textContent = activeCustomers;
+                document.getElementById('overduePayments').textContent = overduePayments;
+                document.getElementById('avgInstallment').textContent = `₹${avgInstallment.toFixed(2)}`;
+            }
+            
+            // Generate detailed report
+            function generateDetailedReport(customers) {
+                const tbody = document.getElementById('reportTableBody');
+                
+                // Group by month (sample grouping)
+                const monthlyData = {};
+                customers.forEach(customer => {
+                    const date = new Date(customer.createdDate);
+                    const monthYear = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+                    
+                    if (!monthlyData[monthYear]) {
+                        monthlyData[monthYear] = {
+                            newCustomers: 0,
+                            totalAmount: 0,
+                            received: 0,
+                            pending: 0
+                        };
+                    }
+                    
+                    monthlyData[monthYear].newCustomers++;
+                    monthlyData[monthYear].totalAmount += parseFloat(customer.totalAmount) || 0;
+                    monthlyData[monthYear].received += parseFloat(customer.paidAmount) || 0;
+                    monthlyData[monthYear].pending += parseFloat(customer.remainingAmount) || 0;
+                });
+                
+                // Convert to table rows
+                const rows = Object.entries(monthlyData).map(([month, data]) => {
+                    const completion = data.totalAmount > 0 ? 
+                        (data.received / data.totalAmount * 100).toFixed(1) : 0;
+                    
+                    return `
+                        <tr>
+                            <td>${month}</td>
+                            <td>${data.newCustomers}</td>
+                            <td>₹${data.totalAmount.toFixed(2)}</td>
+                            <td>₹${data.received.toFixed(2)}</td>
+                            <td>₹${data.pending.toFixed(2)}</td>
+                            <td>${completion}%</td>
+                        </tr>
+                    `;
+                }).join('');
+                
+                tbody.innerHTML = rows || '<tr><td colspan="6">No data available</td></tr>';
+            }
+        });
+        
+        // Export functions
+        window.exportReport = function(format) {
+            if (format === 'print') {
+                window.print();
+            } else {
+                alert(format.toUpperCase() + ' export feature would be implemented here');
+            }
+        };
+    </script>
+</body>
+</html>
