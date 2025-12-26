@@ -10,148 +10,312 @@
     <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-firestore-compat.js"></script>
 </head>
 <body>
-    <!-- Navigation Menu -->
+    <!-- Navigation Bar -->
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-brand">
-                <h1>Installment Management</h1>
-                <p class="admin-email" id="adminEmail">Loading...</p>
+                <div class="logo-small">💰</div>
+                <div>
+                    <h1>Installment Management</h1>
+                    <p class="admin-email" id="adminEmail">Loading...</p>
+                </div>
             </div>
+            
             <div class="nav-menu">
-                <a href="dashboard.html" class="nav-link active">Dashboard</a>
-                <a href="add-customer.html" class="nav-link">Add Customer</a>
-                <a href="view-customers.html" class="nav-link">View Customers</a>
-                <a href="reports.html" class="nav-link">Reports</a>
-                <button id="logoutBtn" class="btn-logout">Logout</button>
+                <a href="dashboard.html" class="nav-link active">
+                    <span class="nav-icon">📊</span>
+                    Dashboard
+                </a>
+                <a href="add-customer.html" class="nav-link">
+                    <span class="nav-icon">➕</span>
+                    Add Customer
+                </a>
+                <a href="view-customers.html" class="nav-link">
+                    <span class="nav-icon">👥</span>
+                    View Customers
+                </a>
+                <a href="reports.html" class="nav-link">
+                    <span class="nav-icon">📈</span>
+                    Reports
+                </a>
+                <button id="logoutBtn" class="btn btn-logout">
+                    <span class="nav-icon">🚪</span>
+                    Logout
+                </button>
             </div>
         </div>
     </nav>
     
-    <!-- Main Dashboard Content -->
-    <main class="container">
-        <div class="dashboard-header">
-            <h2>Admin Dashboard</h2>
-            <p>Complete installment management system</p>
-        </div>
-        
-        <!-- Stats Cards -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <h3>Total Customers</h3>
-                <p id="totalCustomers" class="stat-number">0</p>
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Welcome Header -->
+            <div class="welcome-section">
+                <h2>Welcome to Dashboard</h2>
+                <p>Manage your installment customers efficiently</p>
+                <div class="current-time" id="currentTime"></div>
             </div>
-            <div class="stat-card">
-                <h3>Active Installments</h3>
-                <p id="activeInstallments" class="stat-number">0</p>
+            
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon total-customers">👥</div>
+                    <div class="stat-info">
+                        <h3>Total Customers</h3>
+                        <p id="totalCustomers" class="stat-number">0</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon total-revenue">💰</div>
+                    <div class="stat-info">
+                        <h3>Total Revenue</h3>
+                        <p id="totalRevenue" class="stat-number">₹0</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon pending">⏰</div>
+                    <div class="stat-info">
+                        <h3>Pending Amount</h3>
+                        <p id="pendingAmount" class="stat-number">₹0</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon active">✅</div>
+                    <div class="stat-info">
+                        <h3>Active Accounts</h3>
+                        <p id="activeAccounts" class="stat-number">0</p>
+                    </div>
+                </div>
             </div>
-            <div class="stat-card">
-                <h3>Pending Amount</h3>
-                <p id="pendingAmount" class="stat-number">₹0</p>
+            
+            <!-- Quick Actions -->
+            <div class="section-card">
+                <h3 class="section-title">Quick Actions</h3>
+                <div class="quick-actions-grid">
+                    <a href="add-customer.html" class="action-card">
+                        <div class="action-icon">➕</div>
+                        <div class="action-content">
+                            <h4>Add New Customer</h4>
+                            <p>Create new installment account with photos</p>
+                        </div>
+                    </a>
+                    
+                    <a href="view-customers.html" class="action-card">
+                        <div class="action-icon">🔍</div>
+                        <div class="action-content">
+                            <h4>Search Customers</h4>
+                            <p>Find customers by ID, name, or phone</p>
+                        </div>
+                    </a>
+                    
+                    <a href="view-customers.html" class="action-card">
+                        <div class="action-icon">📥</div>
+                        <div class="action-content">
+                            <h4>Download Reports</h4>
+                            <p>Export customer data to PDF</p>
+                        </div>
+                    </a>
+                    
+                    <a href="reports.html" class="action-card">
+                        <div class="action-icon">📊</div>
+                        <div class="action-content">
+                            <h4>View Analytics</h4>
+                            <p>Business insights and reports</p>
+                        </div>
+                    </a>
+                </div>
             </div>
-            <div class="stat-card">
-                <h3>Received Amount</h3>
-                <p id="receivedAmount" class="stat-number">₹0</p>
+            
+            <!-- Recent Customers -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h3 class="section-title">Recent Customers</h3>
+                    <a href="view-customers.html" class="btn-view-all">View All →</a>
+                </div>
+                
+                <div id="recentCustomers" class="recent-customers-list">
+                    <div class="loading-placeholder">
+                        <div class="loader"></div>
+                        <p>Loading recent customers...</p>
+                    </div>
+                </div>
             </div>
-        </div>
-        
-        <!-- Quick Actions -->
-        <div class="quick-actions">
-            <h3>Quick Actions</h3>
-            <div class="actions-grid">
-                <a href="add-customer.html" class="action-card">
-                    <h4>Add New Customer</h4>
-                    <p>Create new installment account</p>
-                </a>
-                <a href="view-customers.html" class="action-card">
-                    <h4>View All Customers</h4>
-                    <p>See complete customer list</p>
-                </a>
-                <a href="view-customers.html" class="action-card">
-                    <h4>Download Data</h4>
-                    <p>Export to CSV/Excel</p>
-                </a>
-                <a href="reports.html" class="action-card">
-                    <h4>View Reports</h4>
-                    <p>Monthly/yearly reports</p>
-                </a>
-            </div>
-        </div>
-        
-        <!-- Recent Activity -->
-        <div class="recent-activity">
-            <h3>Recent Customers</h3>
-            <div id="recentCustomers" class="activity-list">
-                <p>Loading recent customers...</p>
+            
+            <!-- System Status -->
+            <div class="system-status">
+                <div class="status-item">
+                    <span class="status-label">Database:</span>
+                    <span class="status-value online">Connected</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Storage:</span>
+                    <span class="status-value online">Ready</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Last Updated:</span>
+                    <span id="lastUpdated" class="status-value">Just now</span>
+                </div>
             </div>
         </div>
     </main>
     
-    <script src="script.js"></script>
+    <script src="firebase-config.js"></script>
     <script>
-        // Dashboard page specific code
         document.addEventListener('DOMContentLoaded', function() {
+            const adminEmail = document.getElementById('adminEmail');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const currentTime = document.getElementById('currentTime');
+            
+            // Update current time
+            function updateTime() {
+                const now = new Date();
+                const options = { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                };
+                currentTime.textContent = now.toLocaleDateString('en-IN', options);
+            }
+            updateTime();
+            setInterval(updateTime, 1000);
+            
             // Check authentication
-            firebase.auth().onAuthStateChanged((user) => {
+            firebase.auth().onAuthStateChanged(async (user) => {
                 if (!user) {
                     window.location.href = 'index.html';
                 } else {
-                    document.getElementById('adminEmail').textContent = user.email;
-                    loadDashboardStats();
+                    adminEmail.textContent = user.email;
+                    await loadDashboardData();
                 }
             });
             
-            // Logout button
-            document.getElementById('logoutBtn').addEventListener('click', function() {
+            // Logout
+            logoutBtn.addEventListener('click', function() {
                 firebase.auth().signOut().then(() => {
                     window.location.href = 'index.html';
+                }).catch(error => {
+                    alert('Logout error: ' + error.message);
                 });
             });
             
-            // Load dashboard statistics
-            async function loadDashboardStats() {
+            // Load dashboard data
+            async function loadDashboardData() {
                 try {
-                    const db = firebase.firestore();
-                    const snapshot = await db.collection('customers').get();
+                    const snapshot = await firebase.firestore().collection('customers').get();
+                    
+                    if (snapshot.empty) {
+                        updateStats(0, 0, 0, 0);
+                        showNoCustomers();
+                        return;
+                    }
+                    
+                    let totalCustomers = 0;
+                    let totalRevenue = 0;
+                    let totalPending = 0;
+                    let activeAccounts = 0;
                     const customers = [];
                     
                     snapshot.forEach(doc => {
-                        customers.push({ id: doc.id, ...doc.data() });
+                        const customer = doc.data();
+                        customers.push({ id: doc.id, ...customer });
+                        
+                        totalCustomers++;
+                        totalRevenue += parseFloat(customer.totalAmount) || 0;
+                        
+                        const paid = parseFloat(customer.paidAmount) || 0;
+                        const total = parseFloat(customer.totalAmount) || 0;
+                        totalPending += (total - paid);
+                        
+                        if (customer.status !== 'Completed' && (total - paid) > 0) {
+                            activeAccounts++;
+                        }
                     });
                     
-                    // Calculate statistics
-                    const totalCustomers = customers.length;
-                    const activeInstallments = customers.filter(c => {
-                        const dueDate = new Date(c.dueDate);
-                        const today = new Date();
-                        return dueDate > today;
-                    }).length;
-                    
-                    const totalAmount = customers.reduce((sum, c) => sum + (parseFloat(c.totalAmount) || 0), 0);
-                    const paidAmount = customers.reduce((sum, c) => sum + (parseFloat(c.paidAmount) || 0), 0);
-                    const pendingAmount = totalAmount - paidAmount;
-                    
-                    // Update UI
-                    document.getElementById('totalCustomers').textContent = totalCustomers;
-                    document.getElementById('activeInstallments').textContent = activeInstallments;
-                    document.getElementById('pendingAmount').textContent = `₹${pendingAmount.toFixed(2)}`;
-                    document.getElementById('receivedAmount').textContent = `₹${paidAmount.toFixed(2)}`;
-                    
-                    // Show recent customers
-                    const recent = customers.slice(-5).reverse();
-                    const recentHtml = recent.map(customer => `
-                        <div class="activity-item">
-                            <strong>${customer.name}</strong>
-                            <span>Product: ${customer.product}</span>
-                            <span>Paid: ₹${customer.paidAmount}</span>
-                            <span>Due: ${customer.dueDate}</span>
-                        </div>
-                    `).join('');
-                    
-                    document.getElementById('recentCustomers').innerHTML = recentHtml || '<p>No customers found</p>';
+                    updateStats(totalCustomers, totalRevenue, totalPending, activeAccounts);
+                    displayRecentCustomers(customers.slice(-5).reverse());
+                    document.getElementById('lastUpdated').textContent = 'Just now';
                     
                 } catch (error) {
-                    console.error('Error loading stats:', error);
+                    console.error('Dashboard error:', error);
+                    showError('Failed to load dashboard data');
                 }
+            }
+            
+            // Update stats
+            function updateStats(total, revenue, pending, active) {
+                document.getElementById('totalCustomers').textContent = total;
+                document.getElementById('totalRevenue').textContent = '₹' + revenue.toFixed(2);
+                document.getElementById('pendingAmount').textContent = '₹' + pending.toFixed(2);
+                document.getElementById('activeAccounts').textContent = active;
+            }
+            
+            // Display recent customers
+            function displayRecentCustomers(customers) {
+                const container = document.getElementById('recentCustomers');
+                
+                if (customers.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <p>No customers found. Add your first customer!</p>
+                            <a href="add-customer.html" class="btn btn-primary">Add Customer</a>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let html = '';
+                customers.forEach(customer => {
+                    html += `
+                        <div class="recent-customer-item">
+                            <div class="customer-avatar">
+                                ${customer.customerPhoto ? 
+                                    `<img src="${customer.customerPhoto}" alt="${customer.name}">` : 
+                                    '<div class="avatar-placeholder">👤</div>'
+                                }
+                            </div>
+                            <div class="customer-info">
+                                <h4>${customer.name || 'No Name'}</h4>
+                                <p class="customer-id">ID: ${customer.customerID || 'N/A'}</p>
+                                <p class="customer-phone">📱 ${customer.phone || 'No Phone'}</p>
+                            </div>
+                            <div class="customer-status">
+                                <span class="status-badge ${(customer.status || 'Active').toLowerCase()}">
+                                    ${customer.status || 'Active'}
+                                </span>
+                                <p class="customer-amount">₹${parseFloat(customer.totalAmount || 0).toFixed(2)}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = html;
+            }
+            
+            function showNoCustomers() {
+                const container = document.getElementById('recentCustomers');
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>No customers yet. Start by adding your first customer!</p>
+                        <a href="add-customer.html" class="btn btn-primary">Add First Customer</a>
+                    </div>
+                `;
+            }
+            
+            function showError(message) {
+                const container = document.getElementById('recentCustomers');
+                container.innerHTML = `
+                    <div class="error-state">
+                        <p>❌ ${message}</p>
+                        <button onclick="loadDashboardData()" class="btn btn-secondary">Retry</button>
+                    </div>
+                `;
             }
         });
     </script>
