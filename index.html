@@ -3,29 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Naeem Khan Traders</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Admin Login | Installment System</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-firestore-compat.js"></script>
 </head>
-<body class="flex items-center justify-center min-h-screen">
-    <div class="glass-panel p-8 rounded-2xl w-full max-w-md m-4">
-        <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold vip-text">Naeem Khan Traders</h1>
-            <p class="text-gray-400 text-sm mt-2">Management System Login</p>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-box">
+            <h1>Installment Management System</h1>
+            <h2>Admin Login</h2>
+            
+            <form id="loginForm">
+                <div class="input-group">
+                    <label for="email">Admin Email:</label>
+                    <input type="email" id="email" placeholder="admin@example.com" required>
+                </div>
+                
+                <div class="input-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" placeholder="Enter password" required>
+                </div>
+                
+                <button type="submit" class="btn-login">Login to Dashboard</button>
+            </form>
+            
+            <div id="loginMessage" class="message"></div>
+            
+            <div class="login-info">
+                <p><strong>Note:</strong> Sirf authorized admin hi login kar sakte hain.</p>
+            </div>
         </div>
-        <form onsubmit="handleLogin(event)">
-            <div class="mb-4">
-                <label class="block text-gray-400 text-sm mb-2">Email</label>
-                <input type="email" id="email" class="w-full bg-gray-800 border border-gray-600 rounded p-3 text-white" required>
-            </div>
-            <div class="mb-6">
-                <label class="block text-gray-400 text-sm mb-2">Password</label>
-                <input type="password" id="password" class="w-full bg-gray-800 border border-gray-600 rounded p-3 text-white" required>
-            </div>
-            <button type="submit" id="loginBtn" class="w-full btn-primary text-white font-bold py-3 rounded-xl shadow-lg">Login</button>
-        </form>
     </div>
-    <script type="module" src="script.js"></script>
+    
+    <script src="script.js"></script>
+    <script>
+        // Login page specific code
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const messageEl = document.getElementById('loginMessage');
+            
+            messageEl.textContent = 'Logging in...';
+            messageEl.className = 'message info';
+            
+            firebase.auth().signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // Success - redirect to dashboard
+                    window.location.href = 'dashboard.html';
+                })
+                .catch((error) => {
+                    messageEl.textContent = 'Error: ' + error.message;
+                    messageEl.className = 'message error';
+                });
+        });
+    </script>
 </body>
 </html>
