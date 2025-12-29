@@ -376,7 +376,7 @@
         </div>
     </main>
     
-    <script src="firebase-config.js"></script>
+    <script src="script.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const adminEmail = document.getElementById('adminEmail');
@@ -405,10 +405,15 @@
                     
                     // Generate and preview customer ID
                     const prefix = 'C'; // Can change to A, B, C etc.
-                    const customerID = await generateCustomerID(prefix);
-                    previewCustomerID.textContent = customerID;
-                    previewCustomerID.style.fontWeight = 'bold';
-                    previewCustomerID.style.color = '#667eea';
+                    try {
+                        const customerID = await window.generateCustomerID(prefix);
+                        previewCustomerID.textContent = customerID;
+                        previewCustomerID.style.fontWeight = 'bold';
+                        previewCustomerID.style.color = '#667eea';
+                    } catch (error) {
+                        console.error('Error generating ID:', error);
+                        previewCustomerID.textContent = 'C001';
+                    }
                 }
             });
             
@@ -472,7 +477,7 @@
                     // Generate customer ID
                     const prefix = document.getElementById('productCategory').value === 'electronics' ? 'E' : 
                                   document.getElementById('productCategory').value === 'vehicle' ? 'V' : 'C';
-                    const customerID = await generateCustomerID(prefix);
+                    const customerID = await window.generateCustomerID(prefix);
                     
                     // Prepare customer data
                     const customerData = {
@@ -578,7 +583,7 @@
                     document.getElementById('dueDate').value = nextMonth.toISOString().split('T')[0];
                     
                     // Generate new ID
-                    const newID = await generateCustomerID(prefix);
+                    const newID = await window.generateCustomerID(prefix);
                     previewCustomerID.textContent = newID;
                     
                     // Recalculate
