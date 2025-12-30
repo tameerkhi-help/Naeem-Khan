@@ -1,116 +1,131 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ur" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login | Installment System</title>
+    <title>Naeem Jan Traders - Installment System</title>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    
     <link rel="stylesheet" href="style.css">
-    <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.8.4/firebase-firestore-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body class="login-page">
-    <div class="login-container">
+<body>
+
+    <div id="login-section" class="container">
         <div class="login-box">
-            <div class="login-header">
-                <div class="logo">💰</div>
-                <h1>Installment Management System</h1>
-                <p>Admin Login - Secure Access Only</p>
-            </div>
-            
-            <form id="loginForm" class="login-form">
-                <div class="form-group">
-                    <label for="loginEmail">Admin Email Address</label>
-                    <input type="email" id="loginEmail" placeholder="admin@yourbusiness.com" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="loginPassword">Password</label>
-                    <input type="password" id="loginPassword" placeholder="Enter your password" required>
-                </div>
-                
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary btn-login">
-                        <span class="btn-text">Login to Dashboard</span>
-                        <span class="btn-loader" style="display:none;">Logging in...</span>
-                    </button>
-                </div>
-            </form>
-            
-            <div id="loginMessage" class="message-box"></div>
-            
-            <div class="login-footer">
-                <p><strong>Note:</strong> This system is for authorized administrators only.</p>
-                <p>All activities are logged and monitored.</p>
-            </div>
+            <h2>Naeem Jan Traders Login</h2>
+            <input type="email" id="admin-email" placeholder="Email">
+            <input type="password" id="admin-password" placeholder="Password">
+            <button onclick="login()">Login</button>
+            <p id="login-error" class="error"></p>
         </div>
     </div>
-    
-    <script src="script.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const loginForm = document.getElementById('loginForm');
-            const loginMessage = document.getElementById('loginMessage');
-            const btnText = document.querySelector('.btn-text');
-            const btnLoader = document.querySelector('.btn-loader');
-            
-            // Check if already logged in
-            firebase.auth().onAuthStateChanged((user) => {
-                if (user) {
-                    window.location.href = 'dashboard.html';
-                }
-            });
-            
-            loginForm.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                const email = document.getElementById('loginEmail').value.trim();
-                const password = document.getElementById('loginPassword').value;
-                
-                // Show loading
-                btnText.style.display = 'none';
-                btnLoader.style.display = 'inline-block';
-                loginMessage.innerHTML = '';
-                
-                try {
-                    const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+
+    <div id="dashboard-section" class="container hidden">
+        <header>
+            <h1>Naeem Jan Traders</h1>
+            <button onclick="logout()" class="logout-btn">Log Out</button>
+        </header>
+
+        <nav>
+            <button onclick="showView('due-list-view')" class="active-nav">📅 آج کی وصولیاں (Due List)</button>
+            <button onclick="showView('search-view')">🔍 کسٹمر تلاش (Search)</button>
+            <button onclick="showView('add-customer-view')">➕ نیا کسٹمر (Add New)</button>
+        </nav>
+
+        <div id="due-list-view" class="content-view">
+            <h3>📋 وہ کسٹمرز جن کی قسط باقی ہے</h3>
+            <div class="table-responsive">
+                <table class="styled-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>نام</th>
+                            <th>موبائل</th>
+                            <th>ماہانہ قسط</th>
+                            <th>بقایا بیلنس</th>
+                            <th>ادائیگی (Quick Pay)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="due-customers-body">
+                        </tbody>
+                </table>
+            </div>
+            <p id="no-due-msg" class="text-center hidden">سب کی قسطیں ادا ہو چکی ہیں۔</p>
+        </div>
+
+        <div id="search-view" class="content-view hidden">
+            <div class="search-bar">
+                 <h3>کسٹمر تلاش کریں</h3>
+                <input type="text" id="search-id" placeholder="Account ID (e.g. 100)">
+                <button onclick="searchCustomer()">Search</button>
+            </div>
+            <div id="search-result" class="hidden">
+                </div>
+        </div>
+
+        <div id="add-customer-view" class="content-view hidden">
+             <h3>نیا کسٹمر شامل کریں</h3>
+            <form id="customer-form">
+                <div class="form-section">
+                    <h4>بنیادی معلومات</h4>
+                    <div class="form-row">
+                        <input type="text" id="accountId" required placeholder="Account ID (Unique)*">
+                        <input type="date" id="issueDate">
+                    </div>
+                    <div class="form-row">
+                        <input type="text" id="buyerName" required placeholder="Buyer Name*">
+                        <input type="text" id="phone" placeholder="Mobile Number">
+                    </div>
+                    <div class="form-row">
+                         <input type="text" id="fatherName" placeholder="Father Name">
+                         <input type="text" id="profession" placeholder="Profession">
+                    </div>
+                    <input type="text" id="homeAddress" placeholder="Home Address" class="full-width">
+                    <input type="text" id="officeAddress" placeholder="Office Address" class="full-width">
                     
-                    // Success
-                    loginMessage.innerHTML = `
-                        <div class="message success">
-                            ✅ Login successful! Redirecting to dashboard...
+                    <div class="form-row" style="margin-top:15px; background:#f9f9f9; padding:10px;">
+                        <div>
+                            <label>کسٹمر کی تصویر (Optional):</label>
+                            <input type="file" id="customerPhotoInput" accept="image/*">
                         </div>
-                    `;
-                    
-                    setTimeout(() => {
-                        window.location.href = 'dashboard.html';
-                    }, 1500);
-                    
-                } catch (error) {
-                    // Reset button
-                    btnText.style.display = 'inline-block';
-                    btnLoader.style.display = 'none';
-                    
-                    // Show error
-                    let errorMsg = 'Login failed. ';
-                    if (error.code === 'auth/user-not-found') {
-                        errorMsg = 'Admin account not found.';
-                    } else if (error.code === 'auth/wrong-password') {
-                        errorMsg = 'Incorrect password.';
-                    } else if (error.code === 'auth/invalid-email') {
-                        errorMsg = 'Invalid email format.';
-                    } else {
-                        errorMsg += error.message;
-                    }
-                    
-                    loginMessage.innerHTML = `
-                        <div class="message error">
-                            ❌ ${errorMsg}
+                        <div>
+                            <label>CNIC تصویر (Optional):</label>
+                            <input type="file" id="cnicPhotoInput" accept="image/*">
                         </div>
-                    `;
-                }
-            });
-        });
-    </script>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h4>پروڈکٹ اور پیمنٹ</h4>
+                    <div class="form-row">
+                        <input type="number" id="totalPrice" placeholder="Total Price*" required onchange="calculateRemaining()">
+                        <input type="number" id="advance" placeholder="Advance*" required onchange="calculateRemaining()">
+                    </div>
+                     <div class="form-row">
+                        <input type="number" id="initialRemaining" placeholder="Remaining (Auto)" readonly>
+                        <input type="number" id="monthlyInstallment" placeholder="Monthly Installment*" required>
+                    </div>
+                     <div class="form-row">
+                        <input type="text" id="items" placeholder="Items Name">
+                        <input type="text" id="modelNumber" placeholder="Model / Serial">
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h4>ضمانتی (Guarantors)</h4>
+                    <input type="text" id="g1Name" placeholder="Guarantor 1 Name" class="full-width">
+                    <input type="text" id="g2Name" placeholder="Guarantor 2 Name" class="full-width">
+                </div>
+
+                <button type="submit" id="save-btn" class="save-btn">Save Customer</button>
+                <p id="save-message"></p>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
 </body>
 </html>
