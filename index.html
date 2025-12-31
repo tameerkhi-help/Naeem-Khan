@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ur" dir="rtl" id="htmlRoot">
+<html lang="en" dir="ltr" id="htmlRoot">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,7 +10,7 @@
     
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -18,7 +18,7 @@
     <div class="language-toggle">
         <button id="langToggle" class="lang-btn">
             <i class="fas fa-language"></i>
-            <span id="langText">English</span>
+            <span id="langText">اردو</span>
         </button>
     </div>
 
@@ -29,8 +29,8 @@
                 <div class="logo-circle">
                     <i class="fas fa-store-alt"></i>
                 </div>
-                <h2 data-en="Naeem Jan Traders Login" data-ur="نعیم جان ٹریڈرز لاگ ان">نعیم جان ٹریڈرز لاگ ان</h2>
-                <p data-en="Manage your installment system efficiently" data-ur="اپنی قسطیں منظم طریقے سے چلائیں">اپنی قسطیں منظم طریقے سے چلائیں</p>
+                <h2 data-en="Naeem Jan Traders Login" data-ur="نعیم جان ٹریڈرز لاگ ان">Naeem Jan Traders Login</h2>
+                <p data-en="Manage your installment system efficiently" data-ur="اپنی قسطیں منظم طریقے سے چلائیں">Manage your installment system efficiently</p>
             </div>
             <div class="input-group">
                 <i class="fas fa-envelope"></i>
@@ -40,7 +40,7 @@
                 <i class="fas fa-lock"></i>
                 <input type="password" id="admin-password" placeholder="Password" data-en="Password" data-ur="پاس ورڈ">
             </div>
-            <button onclick="login()" class="login-btn" data-en="Login" data-ur="لاگ ان">لاگ ان</button>
+            <button onclick="login()" class="login-btn" data-en="Login" data-ur="لاگ ان">Login</button>
             <p id="login-error" class="error"></p>
         </div>
     </div>
@@ -53,28 +53,28 @@
                     <i class="fas fa-store-alt"></i>
                 </div>
                 <div>
-                    <h1 data-en="Naeem Jan Traders" data-ur="نعیم جان ٹریڈرز">نعیم جان ٹریڈرز</h1>
-                    <p class="subtitle" data-en="Installment Management System" data-ur="قسط مینجمنٹ سسٹم">قسط مینجمنٹ سسٹم</p>
+                    <h1 data-en="Naeem Jan Traders" data-ur="نعیم جان ٹریڈرز">Naeem Jan Traders</h1>
+                    <p class="subtitle" data-en="Installment Management System" data-ur="قسط مینجمنٹ سسٹم">Installment Management System</p>
                 </div>
             </div>
             <div class="header-right">
                 <div class="stats-box">
                     <div class="stat">
                         <span class="stat-value" id="total-customers">0</span>
-                        <span class="stat-label" data-en="Customers" data-ur="کسٹمرز">کسٹمرز</span>
+                        <span class="stat-label" data-en="Customers" data-ur="کسٹمرز">Customers</span>
                     </div>
                     <div class="stat">
                         <span class="stat-value" id="due-today">0</span>
-                        <span class="stat-label" data-en="Due Today" data-ur="آج واجب">آج واجب</span>
+                        <span class="stat-label" data-en="Due Today" data-ur="آج واجب">Due Today</span>
                     </div>
                     <div class="stat">
                         <span class="stat-value" id="total-balance">0</span>
-                        <span class="stat-label" data-en="Total Balance" data-ur="کل بقایا">کل بقایا</span>
+                        <span class="stat-label" data-en="Total Balance" data-ur="کل بقایا">Total Balance</span>
                     </div>
                 </div>
                 <button onclick="logout()" class="logout-btn">
                     <i class="fas fa-sign-out-alt"></i>
-                    <span data-en="Log Out" data-ur="لاگ آؤٹ">لاگ آؤٹ</span>
+                    <span data-en="Log Out" data-ur="لاگ آؤٹ">Log Out</span>
                 </button>
             </div>
         </header>
@@ -83,42 +83,43 @@
         <nav>
             <button onclick="showView('due-list-view')" class="nav-btn active-nav">
                 <i class="fas fa-calendar-day"></i>
-                <span data-en="Today's Due" data-ur="آج کی وصولیاں">آج کی وصولیاں</span>
+                <span data-en="Today's Due" data-ur="آج کی وصولیاں">Today's Due</span>
             </button>
             <button onclick="showView('search-view')" class="nav-btn">
                 <i class="fas fa-search"></i>
-                <span data-en="Search Customer" data-ur="کسٹمر تلاش">کسٹمر تلاش</span>
+                <span data-en="Search Customer" data-ur="کسٹمر تلاش">Search Customer</span>
             </button>
             <button onclick="showView('add-customer-view')" class="nav-btn">
                 <i class="fas fa-user-plus"></i>
-                <span data-en="Add New Customer" data-ur="نیا کسٹمر">نیا کسٹمر</span>
+                <span data-en="Add New Customer" data-ur="نیا کسٹمر">Add New Customer</span>
             </button>
             <button onclick="showView('all-customers-view')" class="nav-btn">
                 <i class="fas fa-users"></i>
-                <span data-en="All Customers" data-ur="تمام کسٹمرز">تمام کسٹمرز</span>
+                <span data-en="All Customers" data-ur="تمام کسٹمرز">All Customers</span>
             </button>
         </nav>
 
         <!-- Due List View -->
         <div id="due-list-view" class="content-view">
             <div class="view-header">
-                <h3><i class="fas fa-clipboard-list"></i> <span data-en="Customers with Due Installments" data-ur="وہ کسٹمرز جن کی قسط باقی ہے">وہ کسٹمرز جن کی قسط باقی ہے</span></h3>
+                <h3><i class="fas fa-clipboard-list"></i> <span data-en="Customers with Due Installments" data-ur="وہ کسٹمرز جن کی قسط باقی ہے">Customers with Due Installments</span></h3>
                 <button onclick="refreshDueList()" class="refresh-btn">
                     <i class="fas fa-sync-alt"></i>
-                    <span data-en="Refresh" data-ur="ریفریش">ریفریش</span>
+                    <span data-en="Refresh" data-ur="ریفریش">Refresh</span>
                 </button>
             </div>
             <div class="table-container">
                 <table class="styled-table">
                     <thead>
                         <tr>
-                            <th data-en="ID" data-ur="آئی ڈی">آئی ڈی</th>
-                            <th data-en="Name" data-ur="نام">نام</th>
-                            <th data-en="Phone" data-ur="فون">فون</th>
-                            <th data-en="Monthly Installment" data-ur="ماہانہ قسط">ماہانہ قسط</th>
-                            <th data-en="Balance" data-ur="بقایا">بقایا</th>
-                            <th data-en="Next Due Date" data-ur="اگلی تاریخ">اگلی تاریخ</th>
-                            <th data-en="Actions" data-ur="کارروائیاں">کارروائیاں</th>
+                            <th data-en="ID" data-ur="آئی ڈی">ID</th>
+                            <th data-en="Name" data-ur="نام">Name</th>
+                            <th data-en="Phone" data-ur="فون">Phone</th>
+                            <th data-en="Installment" data-ur="قسط">Installment</th>
+                            <th data-en="Balance" data-ur="بقایا">Balance</th>
+                            <th data-en="Due Date" data-ur="تاریخ">Due Date</th>
+                            <th data-en="Status" data-ur="حالت">Status</th>
+                            <th data-en="Actions" data-ur="کارروائیاں">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="due-customers-body">
@@ -128,36 +129,36 @@
             </div>
             <div id="no-due-msg" class="empty-state hidden">
                 <i class="fas fa-check-circle"></i>
-                <h4 data-en="All Installments Paid" data-ur="سب کی قسطیں ادا ہو چکی ہیں">سب کی قسطیں ادا ہو چکی ہیں</h4>
-                <p data-en="No pending installments for today" data-ur="آج کے لیے کوئی بقایا قسط نہیں ہے">آج کے لیے کوئی بقایا قسط نہیں ہے</p>
+                <h4 data-en="All Installments Paid" data-ur="سب کی قسطیں ادا ہو چکی ہیں">All Installments Paid</h4>
+                <p data-en="No pending installments for today" data-ur="آج کے لیے کوئی بقایا قسط نہیں ہے">No pending installments for today</p>
             </div>
         </div>
 
         <!-- Search View -->
         <div id="search-view" class="content-view hidden">
             <div class="view-header">
-                <h3><i class="fas fa-search"></i> <span data-en="Search Customer" data-ur="کسٹمر تلاش کریں">کسٹمر تلاش کریں</span></h3>
+                <h3><i class="fas fa-search"></i> <span data-en="Search Customer" data-ur="کسٹمر تلاش کریں">Search Customer</span></h3>
             </div>
             <div class="search-container">
                 <div class="search-bar">
                     <i class="fas fa-search"></i>
                     <input type="text" id="search-input" placeholder="Search by ID, Name or Phone" data-en="Search by ID, Name or Phone" data-ur="آئی ڈی، نام یا فون سے تلاش کریں">
                     <button onclick="searchCustomer()" class="search-btn">
-                        <span data-en="Search" data-ur="تلاش">تلاش</span>
+                        <span data-en="Search" data-ur="تلاش">Search</span>
                     </button>
                 </div>
                 <div class="search-filters">
                     <label>
                         <input type="radio" name="search-type" value="id" checked>
-                        <span data-en="By ID" data-ur="آئی ڈی سے">آئی ڈی سے</span>
+                        <span data-en="By ID" data-ur="آئی ڈی سے">By ID</span>
                     </label>
                     <label>
                         <input type="radio" name="search-type" value="name">
-                        <span data-en="By Name" data-ur="نام سے">نام سے</span>
+                        <span data-en="By Name" data-ur="نام سے">By Name</span>
                     </label>
                     <label>
                         <input type="radio" name="search-type" value="phone">
-                        <span data-en="By Phone" data-ur="فون سے">فون سے</span>
+                        <span data-en="By Phone" data-ur="فون سے">By Phone</span>
                     </label>
                 </div>
             </div>
@@ -169,10 +170,10 @@
         <!-- Add/Edit Customer View -->
         <div id="add-customer-view" class="content-view hidden">
             <div class="view-header">
-                <h3><i class="fas fa-user-plus" id="form-icon"></i> <span id="form-title" data-en="Add New Customer" data-ur="نیا کسٹمر شامل کریں">نیا کسٹمر شامل کریں</span></h3>
+                <h3><i class="fas fa-user-plus" id="form-icon"></i> <span id="form-title" data-en="Add New Customer" data-ur="نیا کسٹمر شامل کریں">Add New Customer</span></h3>
                 <button onclick="resetForm()" class="secondary-btn" id="reset-btn">
                     <i class="fas fa-redo"></i>
-                    <span data-en="Reset Form" data-ur="فارم ری سیٹ">فارم ری سیٹ</span>
+                    <span data-en="Reset Form" data-ur="فارم ری سیٹ">Reset Form</span>
                 </button>
             </div>
             
@@ -185,39 +186,39 @@
                     <div class="form-section">
                         <div class="section-header">
                             <i class="fas fa-id-card"></i>
-                            <h4 data-en="Basic Information" data-ur="بنیادی معلومات">بنیادی معلومات</h4>
+                            <h4 data-en="Basic Information" data-ur="بنیادی معلومات">Basic Information</h4>
                         </div>
                         <div class="form-grid">
                             <div class="form-group">
-                                <label for="accountId" data-en="Account ID *" data-ur="اکاؤنٹ آئی ڈی *">اکاؤنٹ آئی ڈی *</label>
+                                <label for="accountId" data-en="Account ID *" data-ur="اکاؤنٹ آئی ڈی *">Account ID *</label>
                                 <input type="text" id="accountId" required>
                             </div>
                             <div class="form-group">
-                                <label for="issueDate" data-en="Issue Date" data-ur="تاریخ اجراء">تاریخ اجراء</label>
+                                <label for="issueDate" data-en="Issue Date" data-ur="تاریخ اجراء">Issue Date</label>
                                 <input type="date" id="issueDate">
                             </div>
                             <div class="form-group">
-                                <label for="buyerName" data-en="Buyer Name *" data-ur="خریدار کا نام *">خریدار کا نام *</label>
+                                <label for="buyerName" data-en="Buyer Name *" data-ur="خریدار کا نام *">Buyer Name *</label>
                                 <input type="text" id="buyerName" required>
                             </div>
                             <div class="form-group">
-                                <label for="phone" data-en="Mobile Number" data-ur="موبائل نمبر">موبائل نمبر</label>
+                                <label for="phone" data-en="Mobile Number" data-ur="موبائل نمبر">Mobile Number</label>
                                 <input type="text" id="phone">
                             </div>
                             <div class="form-group">
-                                <label for="fatherName" data-en="Father Name" data-ur="والد کا نام">والد کا نام</label>
+                                <label for="fatherName" data-en="Father Name" data-ur="والد کا نام">Father Name</label>
                                 <input type="text" id="fatherName">
                             </div>
                             <div class="form-group">
-                                <label for="profession" data-en="Profession" data-ur="پیشہ">پیشہ</label>
+                                <label for="profession" data-en="Profession" data-ur="پیشہ">Profession</label>
                                 <input type="text" id="profession">
                             </div>
                             <div class="form-group full-width">
-                                <label for="homeAddress" data-en="Home Address" data-ur="گھر کا پتہ">گھر کا پتہ</label>
+                                <label for="homeAddress" data-en="Home Address" data-ur="گھر کا پتہ">Home Address</label>
                                 <input type="text" id="homeAddress">
                             </div>
                             <div class="form-group full-width">
-                                <label for="officeAddress" data-en="Office Address" data-ur="دفتر کا پتہ">دفتر کا پتہ</label>
+                                <label for="officeAddress" data-en="Office Address" data-ur="دفتر کا پتہ">Office Address</label>
                                 <input type="text" id="officeAddress">
                             </div>
                         </div>
@@ -227,13 +228,13 @@
                     <div class="form-section">
                         <div class="section-header">
                             <i class="fas fa-images"></i>
-                            <h4 data-en="Photos (Optional)" data-ur="تصاویر (اختیاری)">تصاویر (اختیاری)</h4>
+                            <h4 data-en="Photos (Optional)" data-ur="تصاویر (اختیاری)">Photos (Optional)</h4>
                         </div>
                         <div class="image-upload-grid">
                             <div class="image-upload-box">
                                 <label for="customerPhotoInput" class="upload-label">
                                     <i class="fas fa-camera"></i>
-                                    <span data-en="Customer Photo" data-ur="کسٹمر کی تصویر">کسٹمر کی تصویر</span>
+                                    <span data-en="Customer Photo" data-ur="کسٹمر کی تصویر">Customer Photo</span>
                                     <div id="customer-photo-preview" class="image-preview"></div>
                                 </label>
                                 <input type="file" id="customerPhotoInput" accept="image/*" hidden>
@@ -241,7 +242,7 @@
                             <div class="image-upload-box">
                                 <label for="cnicPhotoInput" class="upload-label">
                                     <i class="fas fa-id-card"></i>
-                                    <span data-en="CNIC Photo" data-ur="شناختی کارڈ">شناختی کارڈ</span>
+                                    <span data-en="CNIC Photo" data-ur="شناختی کارڈ">CNIC Photo</span>
                                     <div id="cnic-photo-preview" class="image-preview"></div>
                                 </label>
                                 <input type="file" id="cnicPhotoInput" accept="image/*" hidden>
@@ -253,31 +254,31 @@
                     <div class="form-section">
                         <div class="section-header">
                             <i class="fas fa-shopping-cart"></i>
-                            <h4 data-en="Product & Payment" data-ur="پروڈکٹ اور ادائیگی">پروڈکٹ اور ادائیگی</h4>
+                            <h4 data-en="Product & Payment" data-ur="پروڈکٹ اور ادائیگی">Product & Payment</h4>
                         </div>
                         <div class="form-grid">
                             <div class="form-group">
-                                <label for="totalPrice" data-en="Total Price *" data-ur="کل قیمت *">کل قیمت *</label>
+                                <label for="totalPrice" data-en="Total Price *" data-ur="کل قیمت *">Total Price *</label>
                                 <input type="number" id="totalPrice" required onchange="calculateRemaining()">
                             </div>
                             <div class="form-group">
-                                <label for="advance" data-en="Advance *" data-ur="ایڈوانس *">ایڈوانس *</label>
+                                <label for="advance" data-en="Advance *" data-ur="ایڈوانس *">Advance *</label>
                                 <input type="number" id="advance" required onchange="calculateRemaining()">
                             </div>
                             <div class="form-group">
-                                <label for="initialRemaining" data-en="Remaining Balance" data-ur="بقایا بیلنس">بقایا بیلنس</label>
+                                <label for="initialRemaining" data-en="Remaining Balance" data-ur="بقایا بیلنس">Remaining Balance</label>
                                 <input type="number" id="initialRemaining" readonly class="readonly">
                             </div>
                             <div class="form-group">
-                                <label for="monthlyInstallment" data-en="Monthly Installment *" data-ur="ماہانہ قسط *">ماہانہ قسط *</label>
+                                <label for="monthlyInstallment" data-en="Monthly Installment *" data-ur="ماہانہ قسط *">Monthly Installment *</label>
                                 <input type="number" id="monthlyInstallment" required>
                             </div>
                             <div class="form-group">
-                                <label for="items" data-en="Items Name" data-ur="سامان کا نام">سامان کا نام</label>
+                                <label for="items" data-en="Items Name" data-ur="سامان کا نام">Items Name</label>
                                 <input type="text" id="items">
                             </div>
                             <div class="form-group">
-                                <label for="modelNumber" data-en="Model / Serial" data-ur="ماڈل / سیریل">ماڈل / سیریل</label>
+                                <label for="modelNumber" data-en="Model / Serial" data-ur="ماڈل / سیریل">Model / Serial</label>
                                 <input type="text" id="modelNumber">
                             </div>
                         </div>
@@ -287,15 +288,15 @@
                     <div class="form-section">
                         <div class="section-header">
                             <i class="fas fa-user-shield"></i>
-                            <h4 data-en="Guarantors" data-ur="ضامن">ضامن</h4>
+                            <h4 data-en="Guarantors" data-ur="ضامن">Guarantors</h4>
                         </div>
                         <div class="form-grid">
                             <div class="form-group full-width">
-                                <label for="g1Name" data-en="Guarantor 1 Name" data-ur="پہلے ضامن کا نام">پہلے ضامن کا نام</label>
+                                <label for="g1Name" data-en="Guarantor 1 Name" data-ur="پہلے ضامن کا نام">Guarantor 1 Name</label>
                                 <input type="text" id="g1Name">
                             </div>
                             <div class="form-group full-width">
-                                <label for="g2Name" data-en="Guarantor 2 Name" data-ur="دوسرے ضامن کا نام">دوسرے ضامن کا نام</label>
+                                <label for="g2Name" data-en="Guarantor 2 Name" data-ur="دوسرے ضامن کا نام">Guarantor 2 Name</label>
                                 <input type="text" id="g2Name">
                             </div>
                         </div>
@@ -304,26 +305,26 @@
 
                 <div class="form-actions">
                     <button type="button" onclick="cancelEdit()" class="cancel-btn hidden" id="cancel-btn">
-                        <span data-en="Cancel" data-ur="منسوخ">منسوخ</span>
+                        <span data-en="Cancel" data-ur="منسوخ">Cancel</span>
                     </button>
                     <button type="submit" id="save-btn" class="save-btn">
                         <i class="fas fa-save"></i>
-                        <span data-en="Save Customer" data-ur="کسٹمر محفوظ کریں">کسٹمر محفوظ کریں</span>
+                        <span data-en="Save Customer" data-ur="کسٹمر محفوظ کریں">Save Customer</span>
                     </button>
                 </div>
-                <p id="save-message" class="message"></p>
+                <p id="save-message" class="message hidden"></p>
             </form>
         </div>
 
         <!-- All Customers View -->
         <div id="all-customers-view" class="content-view hidden">
             <div class="view-header">
-                <h3><i class="fas fa-users"></i> <span data-en="All Customers" data-ur="تمام کسٹمرز">تمام کسٹمرز</span></h3>
+                <h3><i class="fas fa-users"></i> <span data-en="All Customers" data-ur="تمام کسٹمرز">All Customers</span></h3>
                 <div class="view-actions">
                     <input type="text" id="filter-customers" placeholder="Filter customers..." data-en="Filter customers..." data-ur="کسٹمرز فلٹر کریں..." class="filter-input">
                     <button onclick="exportCustomers()" class="secondary-btn">
                         <i class="fas fa-download"></i>
-                        <span data-en="Export" data-ur="ایکسپورٹ">ایکسپورٹ</span>
+                        <span data-en="Export" data-ur="ایکسپورٹ">Export</span>
                     </button>
                 </div>
             </div>
@@ -331,14 +332,14 @@
                 <table class="styled-table">
                     <thead>
                         <tr>
-                            <th data-en="ID" data-ur="آئی ڈی">آئی ڈی</th>
-                            <th data-en="Name" data-ur="نام">نام</th>
-                            <th data-en="Phone" data-ur="فون">فون</th>
-                            <th data-en="Installment" data-ur="قسط">قسط</th>
-                            <th data-en="Balance" data-ur="بقایا">بقایا</th>
-                            <th data-en="Due Date" data-ur="تاریخ">تاریخ</th>
-                            <th data-en="Status" data-ur="حالت">حالت</th>
-                            <th data-en="Actions" data-ur="کارروائیاں">کارروائیاں</th>
+                            <th data-en="ID" data-ur="آئی ڈی">ID</th>
+                            <th data-en="Name" data-ur="نام">Name</th>
+                            <th data-en="Phone" data-ur="فون">Phone</th>
+                            <th data-en="Installment" data-ur="قسط">Installment</th>
+                            <th data-en="Balance" data-ur="بقایا">Balance</th>
+                            <th data-en="Due Date" data-ur="تاریخ">Due Date</th>
+                            <th data-en="Status" data-ur="حالت">Status</th>
+                            <th data-en="Actions" data-ur="کارروائیاں">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="all-customers-body">
@@ -348,8 +349,8 @@
             </div>
             <div id="no-customers-msg" class="empty-state hidden">
                 <i class="fas fa-users-slash"></i>
-                <h4 data-en="No Customers Found" data-ur="کوئی کسٹمر نہیں ملا">کوئی کسٹمر نہیں ملا</h4>
-                <p data-en="Add your first customer to get started" data-ur="شروع کرنے کے لیے پہلا کسٹمر شامل کریں">شروع کرنے کے لیے پہلا کسٹمر شامل کریں</p>
+                <h4 data-en="No Customers Found" data-ur="کوئی کسٹمر نہیں ملا">No Customers Found</h4>
+                <p data-en="Add your first customer to get started" data-ur="شروع کرنے کے لیے پہلا کسٹمر شامل کریں">Add your first customer to get started</p>
             </div>
         </div>
     </div>
@@ -358,47 +359,47 @@
     <div id="payment-modal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 data-en="Record Payment" data-ur="ادائیگی درج کریں">ادائیگی درج کریں</h3>
+                <h3 data-en="Record Payment" data-ur="ادائیگی درج کریں">Record Payment</h3>
                 <button onclick="closeModal()" class="close-modal">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="customer-info">
                     <h4 id="payment-customer-name"></h4>
-                    <p data-en="Account ID:" data-ur="اکاؤنٹ آئی ڈی:">اکاؤنٹ آئی ڈی: <span id="payment-account-id"></span></p>
-                    <p data-en="Current Balance:" data-ur="موجودہ بقایا:">موجودہ بقایا: Rs. <span id="payment-current-balance"></span></p>
-                    <p data-en="Monthly Installment:" data-ur="ماہانہ قسط:">ماہانہ قسط: Rs. <span id="payment-installment-amount"></span></p>
+                    <p data-en="Account ID:" data-ur="اکاؤنٹ آئی ڈی:">Account ID: <span id="payment-account-id"></span></p>
+                    <p data-en="Current Balance:" data-ur="موجودہ بقایا:">Current Balance: Rs. <span id="payment-current-balance"></span></p>
+                    <p data-en="Monthly Installment:" data-ur="ماہانہ قسط:">Monthly Installment: Rs. <span id="payment-installment-amount"></span></p>
                 </div>
                 <div class="payment-form">
                     <div class="form-group">
-                        <label for="payment-amount" data-en="Payment Amount *" data-ur="ادائیگی کی رقم *">ادائیگی کی رقم *</label>
+                        <label for="payment-amount" data-en="Payment Amount *" data-ur="ادائیگی کی رقم *">Payment Amount *</label>
                         <input type="number" id="payment-amount" required>
                     </div>
                     <div class="form-group">
-                        <label for="payment-date" data-en="Payment Date *" data-ur="ادائیگی کی تاریخ *">ادائیگی کی تاریخ *</label>
+                        <label for="payment-date" data-en="Payment Date *" data-ur="ادائیگی کی تاریخ *">Payment Date *</label>
                         <input type="date" id="payment-date" required>
                     </div>
                     <div class="form-group">
-                        <label for="payment-method" data-en="Payment Method" data-ur="ادائیگی کا طریقہ">ادائیگی کا طریقہ</label>
+                        <label for="payment-method" data-en="Payment Method" data-ur="ادائیگی کا طریقہ">Payment Method</label>
                         <select id="payment-method">
-                            <option value="cash" data-en="Cash" data-ur="کیش">کیش</option>
-                            <option value="bank" data-en="Bank Transfer" data-ur="بینک ٹرانسفر">بینک ٹرانسفر</option>
-                            <option value="jazzcash" data-en="JazzCash" data-ur="جازکیش">جازکیش</option>
-                            <option value="easypaisa" data-en="EasyPaisa" data-ur="ایزی پیسہ">ایزی پیسہ</option>
+                            <option value="cash" data-en="Cash" data-ur="کیش">Cash</option>
+                            <option value="bank" data-en="Bank Transfer" data-ur="بینک ٹرانسفر">Bank Transfer</option>
+                            <option value="jazzcash" data-en="JazzCash" data-ur="جازکیش">JazzCash</option>
+                            <option value="easypaisa" data-en="EasyPaisa" data-ur="ایزی پیسہ">EasyPaisa</option>
                         </select>
                     </div>
                     <div class="form-group full-width">
-                        <label for="payment-notes" data-en="Notes (Optional)" data-ur="نوٹ (اختیاری)">نوٹ (اختیاری)</label>
+                        <label for="payment-notes" data-en="Notes (Optional)" data-ur="نوٹ (اختیاری)">Notes (Optional)</label>
                         <textarea id="payment-notes" rows="2"></textarea>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
                 <button onclick="closeModal()" class="cancel-btn">
-                    <span data-en="Cancel" data-ur="منسوخ">منسوخ</span>
+                    <span data-en="Cancel" data-ur="منسوخ">Cancel</span>
                 </button>
                 <button onclick="submitPayment()" class="save-btn">
                     <i class="fas fa-check-circle"></i>
-                    <span data-en="Record Payment" data-ur="ادائیگی درج کریں">ادائیگی درج کریں</span>
+                    <span data-en="Record Payment" data-ur="ادائیگی درج کریں">Record Payment</span>
                 </button>
             </div>
         </div>
@@ -408,23 +409,147 @@
     <div id="delete-modal" class="modal hidden">
         <div class="modal-content delete-modal">
             <div class="modal-header">
-                <h3><i class="fas fa-exclamation-triangle"></i> <span data-en="Confirm Delete" data-ur="حذف کرنے کی تصدیق">حذف کرنے کی تصدیق</span></h3>
+                <h3><i class="fas fa-exclamation-triangle"></i> <span data-en="Confirm Delete" data-ur="حذف کرنے کی تصدیق">Confirm Delete</span></h3>
                 <button onclick="closeDeleteModal()" class="close-modal">&times;</button>
             </div>
             <div class="modal-body">
-                <p data-en="Are you sure you want to delete this customer? This action cannot be undone." data-ur="کیا آپ واقعی اس کسٹمر کو حذف کرنا چاہتے ہیں؟ یہ کارروائی واپس نہیں ہو سکتی۔">کیا آپ واقعی اس کسٹمر کو حذف کرنا چاہتے ہیں؟ یہ کارروائی واپس نہیں ہو سکتی۔</p>
+                <p data-en="Are you sure you want to delete this customer? This action cannot be undone." data-ur="کیا آپ واقعی اس کسٹمر کو حذف کرنا چاہتے ہیں؟ یہ کارروائی واپس نہیں ہو سکتی۔">Are you sure you want to delete this customer? This action cannot be undone.</p>
                 <div class="customer-info">
                     <h4 id="delete-customer-name"></h4>
-                    <p data-en="Account ID:" data-ur="اکاؤنٹ آئی ڈی:">اکاؤنٹ آئی ڈی: <span id="delete-account-id"></span></p>
+                    <p data-en="Account ID:" data-ur="اکاؤنٹ آئی ڈی:">Account ID: <span id="delete-account-id"></span></p>
                 </div>
             </div>
             <div class="modal-footer">
                 <button onclick="closeDeleteModal()" class="cancel-btn">
-                    <span data-en="Cancel" data-ur="منسوخ">منسوخ</span>
+                    <span data-en="Cancel" data-ur="منسوخ">Cancel</span>
                 </button>
                 <button onclick="confirmDelete()" class="delete-confirm-btn">
                     <i class="fas fa-trash-alt"></i>
-                    <span data-en="Delete Customer" data-ur="کسٹمر حذف کریں">کسٹمر حذف کریں</span>
+                    <span data-en="Delete Customer" data-ur="کسٹمر حذف کریں">Delete Customer</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Details Modal -->
+    <div id="customer-details-modal" class="modal hidden">
+        <div class="modal-content details-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-circle"></i> <span data-en="Customer Details" data-ur="کسٹمر کی تفصیلات">Customer Details</span></h3>
+                <button onclick="closeDetailsModal()" class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="details-container">
+                    <div class="details-section">
+                        <h4 data-en="Customer Information" data-ur="کسٹمر کی معلومات">Customer Information</h4>
+                        <div class="details-grid">
+                            <div class="detail-item">
+                                <strong data-en="Account ID:" data-ur="اکاؤنٹ آئی ڈی:">Account ID:</strong>
+                                <span id="detail-account-id"></span>
+                            </div>
+                            <div class="detail-item">
+                                <strong data-en="Name:" data-ur="نام:">Name:</strong>
+                                <span id="detail-name"></span>
+                            </div>
+                            <div class="detail-item">
+                                <strong data-en="Father Name:" data-ur="والد کا نام:">Father Name:</strong>
+                                <span id="detail-father"></span>
+                            </div>
+                            <div class="detail-item">
+                                <strong data-en="Phone:" data-ur="فون:">Phone:</strong>
+                                <span id="detail-phone"></span>
+                            </div>
+                            <div class="detail-item">
+                                <strong data-en="Profession:" data-ur="پیشہ:">Profession:</strong>
+                                <span id="detail-profession"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="details-section">
+                        <h4 data-en="Address Information" data-ur="پتے کی معلومات">Address Information</h4>
+                        <div class="details-grid">
+                            <div class="detail-item full-width">
+                                <strong data-en="Home Address:" data-ur="گھر کا پتہ:">Home Address:</strong>
+                                <span id="detail-home-address"></span>
+                            </div>
+                            <div class="detail-item full-width">
+                                <strong data-en="Office Address:" data-ur="دفتر کا پتہ:">Office Address:</strong>
+                                <span id="detail-office-address"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="details-section">
+                        <h4 data-en="Product & Payment" data-ur="پروڈکٹ اور ادائیگی">Product & Payment</h4>
+                        <div class="details-grid">
+                            <div class="detail-item">
+                                <strong data-en="Total Price:" data-ur="کل قیمت:">Total Price:</strong>
+                                <span id="detail-total-price"></span>
+                            </div>
+                            <div class="detail-item">
+                                <strong data-en="Advance:" data-ur="ایڈوانس:">Advance:</strong>
+                                <span id="detail-advance"></span>
+                            </div>
+                            <div class="detail-item">
+                                <strong data-en="Remaining:" data-ur="بقایا:">Remaining:</strong>
+                                <span id="detail-balance"></span>
+                            </div>
+                            <div class="detail-item">
+                                <strong data-en="Monthly Installment:" data-ur="ماہانہ قسط:">Monthly Installment:</strong>
+                                <span id="detail-installment"></span>
+                            </div>
+                            <div class="detail-item">
+                                <strong data-en="Items:" data-ur="سامان:">Items:</strong>
+                                <span id="detail-items"></span>
+                            </div>
+                            <div class="detail-item">
+                                <strong data-en="Model/Serial:" data-ur="ماڈل/سیریل:">Model/Serial:</strong>
+                                <span id="detail-model"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="details-section">
+                        <h4 data-en="Guarantors" data-ur="ضامن">Guarantors</h4>
+                        <div class="details-grid">
+                            <div class="detail-item full-width">
+                                <strong data-en="Guarantor 1:" data-ur="پہلا ضامن:">Guarantor 1:</strong>
+                                <span id="detail-guarantor1"></span>
+                            </div>
+                            <div class="detail-item full-width">
+                                <strong data-en="Guarantor 2:" data-ur="دوسرا ضامن:">Guarantor 2:</strong>
+                                <span id="detail-guarantor2"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="details-section">
+                        <h4 data-en="Photos" data-ur="تصاویر">Photos</h4>
+                        <div class="image-display-grid">
+                            <div class="image-display">
+                                <h5 data-en="Customer Photo" data-ur="کسٹمر کی تصویر">Customer Photo</h5>
+                                <div id="detail-customer-photo" class="detail-image-preview">
+                                    <span data-en="No photo available" data-ur="تصویر دستیاب نہیں">No photo available</span>
+                                </div>
+                            </div>
+                            <div class="image-display">
+                                <h5 data-en="CNIC Photo" data-ur="شناختی کارڈ">CNIC Photo</h5>
+                                <div id="detail-cnic-photo" class="detail-image-preview">
+                                    <span data-en="No photo available" data-ur="تصویر دستیاب نہیں">No photo available</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeDetailsModal()" class="cancel-btn">
+                    <span data-en="Close" data-ur="بند کریں">Close</span>
+                </button>
+                <button onclick="editCurrentCustomer()" class="save-btn">
+                    <i class="fas fa-edit"></i>
+                    <span data-en="Edit Customer" data-ur="کسٹمر میں ترمیم">Edit Customer</span>
                 </button>
             </div>
         </div>
