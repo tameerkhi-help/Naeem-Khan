@@ -1,5 +1,5 @@
 // ==========================================
-// 1. CONFIGURATION
+// 1. FIREBASE CONFIGURATION
 // ==========================================
 const firebaseConfig = {
     apiKey: "AIzaSyBUSuozhIlEVuxf8zJAd4NAetRTt99fp_w",
@@ -10,391 +10,486 @@ const firebaseConfig = {
     appId: "1:319489849314:web:9dd18550ea3e0c0571abbb"
 };
 
+// Initialize Firebase
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Global State
+// Global Variables
+let currentLang = 'en';
 let allData = [];
-let currentProfileId = null; // Important for Delete
+let currentDetailId = null; // Ye variable delete ke liye zaroori hai
 
 // ==========================================
-// 2. INITIALIZATION
+// 2. SECURITY & LOGIN LOGIC
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    // Set default date
-    const today = new Date().toISOString().split('T')[0];
-    if(document.getElementById('inp-date')) document.getElementById('inp-date').value = today;
-
-    // Check Login State
-    auth.onAuthStateChanged(user => {
-        if (user) {
-            document.getElementById('login-section').classList.add('hidden');
-            document.getElementById('dashboard-section').classList.remove('hidden');
-            loadData();
-        } else {
-            document.getElementById('login-section').classList.remove('hidden');
-            document.getElementById('dashboard-section').classList.add('hidden');
-        }
+    // FORCE LOGOUT on Page Load (Security)
+    auth.signOut().then(() => {
+        document.getElementById('login-section').classList.remove('hidden');
+        document.getElementById('dashboard-section').classList.add('hidden');
     });
+
+    // Event Listeners
+    document.getElementById('langToggle').addEventListener('click', toggleLanguage);
+    
+    // Set Default Date
+    const today = new Date().toISOString().split('T')[0];
+    if(document.getElementById('issueDate')) document.getElementById('issueDate').value = today;
 });
 
-// ==========================================
-// 3. CORE FUNCTIONS (Login/Load)
-// ==========================================
 function handleLogin() {
-    const email = document.getElementById('email').value;
-    const pass = document.getElementById('password').value;
-    
-    showLoading(true, "Logging in...");
-    
-    auth.signInWithEmailAndPassword(email, pass)
+    const email = document.getElementById('admin-email').value;
+    const pass = document.getElementById('admin-password').value;
+    const btn = document.getElementById('login-btn');
+    const err = document.getElementById('login-error');
+
+    if(!email || !pass) {
+        err.innerText = "Email aur Password likhein";
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerText = "Verifying...";
+    err.innerText = "";
+
+    // Persistence NONE = Refresh par logout
+    auth.setPersistence(firebase.auth.Auth.Persistence.NONE)
     .then(() => {
-        showLoading(false);
+        return auth.signInWithEmailAndPassword(email, pass);
     })
-    .catch(err => {
-        showLoading(false);
-        document.getElementById('login-error').innerText = err.message;
+    .then((userCredential) => {
+        document.getElementById('login-section').classList.add('hidden');
+        document.getElementById('dashboard-section').classList.remove('hidden');
+        loadData(); // Login ke baad data load hoga
+    })
+    .catch((error) => {
+        btn.disabled = false;
+        btn.innerText = "Login Securely";
+        err.innerText = "Error: " + error.message;
     });
 }
 
 function handleLogout() {
-    auth.signOut().then(() => location.reload());
+    auth.signOut().then(() => {
+        window.location.reload();
+    });
 }
 
-async function loadData() {
-    showLoading(true, "Loading Data...");
-    try {
-        const snap = await db.collection('customers').orderBy('updatedAt', 'desc').get();
-        allData = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-        
-        updateStats();
-        renderDueList();
-        showLoading(false);
-    } catch(e) {
-        console.error(e);
-        showLoading(false);
+// ==========================================
+// 3. IMAGE AUTO-COMPRESS
+// ==========================================
+function compressAndPreview(input, previewId) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = function (event) {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = function () {
+            const canvas = document.createElement('canvas');
+            const maxWidth = 500; // Resize to 500px width
+            const scaleSize = maxWidth / img.width;
+            canvas.width = maxWidth;
+            canvas.height = img.height * scaleSize;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            // Compress to Quality 0.6
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+
+            document.getElementById(previewId).innerHTML = `<img src="${dataUrl}">`;
+            input.dataset.compressed = dataUrl;
+        }
     }
 }
 
 // ==========================================
-// 4. RENDERING LISTS
+// 4. DATA LOADING
 // ==========================================
-function renderDueList() {
-    const container = document.getElementById('due-list-container');
-    container.innerHTML = "";
+async function loadData() {
+    try {
+        const snapshot = await db.collection('customers').get();
+        allData = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+        
+        updateStats();
+        loadDueCustomers(); 
+        loadAllCustomers(); 
+    } catch (e) { 
+        console.error(e);
+        alert("Data load error: " + e.message);
+    }
+}
+
+function updateStats() {
+    document.getElementById('total-customers').innerText = allData.length;
+    
+    let dueCount = 0;
     const today = new Date();
     today.setHours(0,0,0,0);
 
+    allData.forEach(c => {
+        if(c.currentBalance > 0 && c.nextDueDate) {
+            let dd = new Date(c.nextDueDate);
+            dd.setHours(0,0,0,0);
+            if(dd <= today) dueCount++;
+        }
+    });
+    document.getElementById('due-today').innerText = dueCount;
+}
+
+// ==========================================
+// 5. BUTTONS, ACTIONS & DELETE
+// ==========================================
+
+// --- DUE LIST ---
+function loadDueCustomers() {
+    const tbody = document.getElementById('due-body');
+    tbody.innerHTML = "";
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const filterTxt = document.getElementById('due-search').value.toLowerCase();
+
     const dueList = allData.filter(c => {
-        if(c.balance <= 0) return false;
+        if(c.currentBalance <= 0 || !c.nextDueDate) return false;
         let d = new Date(c.nextDueDate);
         d.setHours(0,0,0,0);
         return d <= today;
     });
 
-    document.getElementById('no-due-msg').classList.toggle('hidden', dueList.length > 0);
+    if(dueList.length === 0) document.getElementById('no-due-msg').classList.remove('hidden');
+    else document.getElementById('no-due-msg').classList.add('hidden');
 
     dueList.forEach(c => {
-        const card = document.createElement('div');
-        card.className = 'customer-card';
-        card.innerHTML = `
-            <div class="card-info">
-                <h4>${c.name} <small>(${c.accountId})</small></h4>
-                <p>Phone: ${c.phone}</p>
-                <p>Balance: <b style="color:red">Rs. ${c.balance}</b></p>
-            </div>
-            <div class="card-actions">
-                <button class="btn-quick-pay" onclick="quickPay('${c.id}', ${c.installment})">
-                    <i class="fas fa-check"></i> Pay 1
-                </button>
-                <button class="btn-view" onclick="openProfile('${c.id}')">
-                    <i class="fas fa-eye"></i>
-                </button>
-            </div>
-        `;
-        container.appendChild(card);
+        if(filterTxt && !c.buyerName.toLowerCase().includes(filterTxt)) return;
+
+        const btnHtml = `
+        <button class="btn-quick-pay" type="button" onclick="quickPay('${c.id}', ${c.monthlyInstallment})">
+            <i class="fas fa-check-circle"></i> 
+            ${currentLang === 'ur' ? '1 مہینہ ادا کریں' : '1 Month Paid'}
+        </button>`;
+
+        let row = `<tr>
+            <td data-en="ID" data-ur="آئی ڈی"><b>${c.accountId}</b></td>
+            <td data-en="Name" data-ur="نام">${c.buyerName}</td>
+            <td data-en="Phone" data-ur="فون"><a href="tel:${c.phone}">${c.phone}</a></td>
+            <td data-en="Inst." data-ur="قسط">Rs. ${c.monthlyInstallment}</td>
+            <td data-en="Action" data-ur="ایکشن">${btnHtml}</td>
+        </tr>`;
+        tbody.innerHTML += row;
     });
 }
 
-function performSearch() {
-    const q = document.getElementById('search-input').value.toLowerCase();
-    const container = document.getElementById('search-results');
-    container.innerHTML = "";
-    
-    if(q.length < 1) return;
-
-    const results = allData.filter(c => {
-        return c.name.toLowerCase().includes(q) || 
-               c.accountId.toString().toLowerCase().includes(q) || 
-               c.phone.includes(q);
-    });
-
-    results.forEach(c => {
-        const card = document.createElement('div');
-        card.className = 'customer-card';
-        card.innerHTML = `
-            <div class="card-info">
-                <h4>${c.name}</h4>
-                <p>Bal: Rs. ${c.balance}</p>
-            </div>
-            <button class="btn-view" onclick="openProfile('${c.id}')">View</button>
-        `;
-        container.appendChild(card);
-    });
+function filterDueList() {
+    loadDueCustomers();
 }
 
-// ==========================================
-// 5. PROFILE & DELETE (FIXED)
-// ==========================================
-function openProfile(id) {
-    currentProfileId = id; // Store ID globally for delete
+// --- QUICK PAY FUNCTION ---
+async function quickPay(id, amount) {
+    if(!confirm("Payment Receive kar li hai? Rs. " + amount)) return;
+
     const c = allData.find(x => x.id === id);
     if(!c) return;
 
-    // Set Images (Contain Mode is in CSS)
-    document.getElementById('img-cust-display').src = c.photoCustomer || '';
-    document.getElementById('img-cnic-display').src = c.photoCnic || '';
+    const newBal = parseFloat(c.currentBalance) - parseFloat(amount);
+    let nextDate = new Date(c.nextDueDate);
+    nextDate.setMonth(nextDate.getMonth() + 1);
+    const todayStr = new Date().toISOString().split('T')[0];
 
-    // Set Info
-    const paidTotal = (c.oldPaid * c.installment) + c.advance;
-    document.getElementById('profile-details').innerHTML = `
-        <div class="profile-row"><span>Name:</span> <b>${c.name}</b></div>
-        <div class="profile-row"><span>ID:</span> <b>${c.accountId}</b></div>
-        <div class="profile-row"><span>Phone:</span> <a href="tel:${c.phone}">${c.phone}</a></div>
-        <div class="profile-row"><span>Address:</span> <span>${c.address || '-'}</span></div>
-        <div class="profile-row"><span>Total Price:</span> <b>${c.totalPrice}</b></div>
-        <div class="profile-row"><span>Paid (Adv+Old):</span> <b style="color:green">${paidTotal}</b></div>
-        <div class="profile-row"><span>Remaining:</span> <b style="color:red">${c.balance}</b></div>
-    `;
-
-    // Load History
-    const hList = document.getElementById('history-list');
-    hList.innerHTML = `
-        <div class="history-item"><span>Start (Advance)</span> <span>${c.advance}</span></div>
-    `;
-    
-    // Fetch Payments
-    db.collection('customers').doc(id).collection('payments').orderBy('date', 'desc').get()
-    .then(snap => {
-        snap.forEach(doc => {
-            const p = doc.data();
-            hList.innerHTML += `
-                <div class="history-item paid">
-                    <span>${p.date}</span> <span>Rec: ${p.amount}</span>
-                </div>
-            `;
+    try {
+        await db.collection('customers').doc(id).update({
+            currentBalance: newBal,
+            nextDueDate: nextDate.toISOString(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-    });
+        
+        await db.collection('customers').doc(id).collection('payments').add({
+            amount: parseFloat(amount),
+            date: todayStr,
+            note: "Quick Pay Button"
+        });
 
-    document.getElementById('profile-modal').classList.remove('hidden');
+        alert("Payment Done!");
+        loadData();
+    } catch(e) {
+        alert("Error: " + e.message);
+    }
 }
 
-// DELETE FUNCTION
+// --- DELETE FUNCTION (ISKO CHECK KAREIN) ---
 async function deleteCustomer() {
-    if(!currentProfileId) {
-        alert("Error: No customer selected");
+    // 1. Check karein id select hai ya nahi
+    if(!currentDetailId) {
+        alert("Error: Koi customer select nahi hai.");
         return;
     }
 
-    if(!confirm("Are you sure? This will delete the customer permanently!")) return;
+    // 2. Confirm karein
+    if(!confirm("CONFIRM DELETE? Ye customer wapis nahi ayega.")) return;
 
-    showLoading(true, "Deleting...");
-    
-    try {
-        await db.collection('customers').doc(currentProfileId).delete();
-        showLoading(false);
-        closeModal();
-        loadData(); // Refresh list
-        alert("Customer Deleted Successfully!");
-    } catch(e) {
-        showLoading(false);
-        alert("Delete Failed! Check Database Rules. Error: " + e.message);
-    }
-}
-
-// ==========================================
-// 6. SAVE & UPDATE (Fast Loading)
-// ==========================================
-async function saveCustomer() {
-    const btn = document.querySelector('button[type="submit"]');
+    // 3. Delete Process
+    const btn = document.querySelector('.btn-delete');
+    const oldText = btn.innerText;
+    btn.innerText = "Deleting...";
     btn.disabled = true;
-    showLoading(true, "Saving & Compressing...");
-
-    const id = document.getElementById('edit-id').value || db.collection('customers').doc().id;
-    const isEdit = document.getElementById('edit-id').value ? true : false;
-
-    // Get Inputs
-    const data = {
-        accountId: document.getElementById('inp-id').value,
-        name: document.getElementById('inp-name').value,
-        phone: document.getElementById('inp-phone').value,
-        father: document.getElementById('inp-father').value,
-        address: document.getElementById('inp-address').value,
-        item: document.getElementById('inp-item').value,
-        totalPrice: Number(document.getElementById('inp-total').value),
-        advance: Number(document.getElementById('inp-advance').value),
-        installment: Number(document.getElementById('inp-monthly').value),
-        oldPaid: Number(document.getElementById('inp-old').value),
-        balance: Number(document.getElementById('inp-balance').value),
-        issueDate: document.getElementById('inp-date').value,
-        nextDueDate: getNextDate(document.getElementById('inp-date').value),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
-
-    // Handle Images
-    const fileCust = document.getElementById('file-customer').files[0];
-    const fileCnic = document.getElementById('file-cnic').files[0];
-
-    if(fileCust) data.photoCustomer = await compressImage(fileCust);
-    else if(isEdit && currentProfileId) {
-        const old = allData.find(x => x.id === currentProfileId);
-        if(old) data.photoCustomer = old.photoCustomer;
-    }
-
-    if(fileCnic) data.photoCnic = await compressImage(fileCnic);
-    else if(isEdit && currentProfileId) {
-        const old = allData.find(x => x.id === currentProfileId);
-        if(old) data.photoCnic = old.photoCnic;
-    }
 
     try {
-        await db.collection('customers').doc(id).set(data, {merge: true});
-        showLoading(false);
-        resetForm();
-        switchView('due-view');
-        loadData();
+        await db.collection('customers').doc(currentDetailId).delete();
+        alert("Customer Delete Ho Gaya!");
+        closeModal('details-modal');
+        loadData(); // Screen refresh
     } catch(e) {
-        showLoading(false);
-        alert("Error: " + e.message);
+        console.error(e);
+        alert("Delete Error: Permission check karein (Firebase Rules). " + e.message);
+    } finally {
+        btn.innerText = oldText;
         btn.disabled = false;
     }
 }
 
-// FAST COMPRESSION
-function compressImage(file) {
-    return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target.result;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const maxWidth = 600; // Smaller size for speed
-                const scale = maxWidth / img.width;
-                canvas.width = maxWidth;
-                canvas.height = img.height * scale;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                // 0.6 quality is good enough for records
-                resolve(canvas.toDataURL('image/jpeg', 0.6)); 
-            };
-        };
+// --- EDIT FUNCTION ---
+function editCustomer() {
+    if(!currentDetailId) return;
+    closeModal('details-modal');
+    
+    const c = allData.find(x => x.id === currentDetailId);
+    
+    document.getElementById('form-mode').value = 'edit';
+    document.getElementById('original-id').value = c.id;
+    document.getElementById('form-heading').innerText = "Edit Customer";
+    
+    // Fill Fields
+    document.getElementById('accountId').value = c.accountId;
+    document.getElementById('buyerName').value = c.buyerName;
+    document.getElementById('phone').value = c.phone;
+    document.getElementById('fatherName').value = c.fatherName || '';
+    document.getElementById('homeAddress').value = c.homeAddress || '';
+    document.getElementById('items').value = c.items || '';
+    document.getElementById('totalPrice').value = c.totalPrice;
+    document.getElementById('advance').value = c.advance;
+    document.getElementById('monthlyInstallment').value = c.monthlyInstallment;
+    document.getElementById('pastPaidMonths').value = c.pastPaidMonths || 0;
+    document.getElementById('currentBalance').value = c.currentBalance;
+    document.getElementById('g1Name').value = c.g1Name || '';
+    document.getElementById('g2Name').value = c.g2Name || '';
+    document.getElementById('issueDate').value = c.issueDate;
+
+    switchView('add-view');
+}
+
+// ==========================================
+// 6. SEARCH & ALL LIST
+// ==========================================
+function performSearch() {
+    const q = document.getElementById('search-input').value.toLowerCase();
+    const grid = document.getElementById('search-results');
+    grid.innerHTML = "";
+
+    const results = allData.filter(c => {
+        return c.accountId.toString().toLowerCase().includes(q) || 
+               c.buyerName.toLowerCase().includes(q) || 
+               (c.phone && c.phone.includes(q));
+    });
+
+    if(results.length === 0) grid.innerHTML = "<p>Koi nahi mila.</p>";
+
+    results.forEach(c => {
+        const btnHtml = c.currentBalance > 0 ? `
+        <button class="btn-quick-pay" style="width:100%; justify-content:center; margin-top:10px;" onclick="quickPay('${c.id}', ${c.monthlyInstallment})">
+            <i class="fas fa-check-circle"></i> 1 Month Paid (Rs. ${c.monthlyInstallment})
+        </button>` : '<p style="color:green; text-align:center;">Fully Paid</p>';
+
+        let card = `<div class="stat-box" style="display:block; margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between;">
+                <h4>${c.buyerName}</h4>
+                <span class="status-badge">${c.accountId}</span>
+            </div>
+            <p>Phone: ${c.phone}</p>
+            <p>Balance: <b>Rs. ${c.currentBalance}</b></p>
+            ${btnHtml}
+            <button class="btn-secondary" style="width:100%; margin-top:5px;" onclick="openDetails('${c.id}')">View Details</button>
+        </div>`;
+        grid.innerHTML += card;
     });
 }
 
-// ==========================================
-// 7. UTILITIES
-// ==========================================
-async function quickPay(id, amount) {
-    if(!confirm(`Receive Payment of Rs. ${amount}?`)) return;
-    showLoading(true, "Processing...");
+function loadAllCustomers() {
+    const tbody = document.getElementById('all-body');
+    tbody.innerHTML = "";
     
-    const c = allData.find(x => x.id === id);
-    const newBal = c.balance - amount;
-    const nextDate = new Date(c.nextDueDate);
-    nextDate.setMonth(nextDate.getMonth() + 1);
+    allData.forEach(c => {
+        let row = `<tr>
+            <td data-en="ID" data-ur="آئی ڈی">${c.accountId}</td>
+            <td data-en="Name" data-ur="نام">${c.buyerName}</td>
+            <td data-en="Balance" data-ur="بقایا">Rs. ${c.currentBalance}</td>
+            <td data-en="Action" data-ur="ایکشن">
+                <button class="btn-edit" onclick="openDetails('${c.id}')">View</button>
+            </td>
+        </tr>`;
+        tbody.innerHTML += row;
+    });
+}
+
+function filterAllList() {
+    const q = document.getElementById('all-filter').value.toLowerCase();
+    const rows = document.getElementById('all-body').getElementsByTagName('tr');
+    for(let row of rows) {
+        row.style.display = row.innerText.toLowerCase().includes(q) ? "" : "none";
+    }
+}
+
+// ==========================================
+// 7. SAVE CUSTOMER
+// ==========================================
+function calculateBalance() {
+    const total = parseFloat(document.getElementById('totalPrice').value) || 0;
+    const adv = parseFloat(document.getElementById('advance').value) || 0;
+    const monthly = parseFloat(document.getElementById('monthlyInstallment').value) || 0;
+    const oldMonths = parseFloat(document.getElementById('pastPaidMonths').value) || 0;
+    
+    let paid = (oldMonths * monthly) + adv;
+    let bal = total - paid;
+    if(bal < 0) bal = 0;
+    document.getElementById('currentBalance').value = bal;
+}
+
+async function saveCustomer() {
+    const btn = document.getElementById('save-btn');
+    btn.disabled = true;
+    btn.innerText = "Saving...";
+
+    const mode = document.getElementById('form-mode').value;
+    const id = mode === 'edit' ? document.getElementById('original-id').value : document.getElementById('accountId').value;
+
+    if(!id || !document.getElementById('buyerName').value) {
+        alert("ID aur Name likhna zaroori hai");
+        btn.disabled = false; return;
+    }
+
+    const imgCustInput = document.getElementById('photo-customer');
+    const imgCnicInput = document.getElementById('photo-cnic');
+    
+    let photoCust = imgCustInput.dataset.compressed || null;
+    let photoCnic = imgCnicInput.dataset.compressed || null;
+
+    if(mode === 'edit') {
+        const old = allData.find(x => x.id === id);
+        if(!photoCust && old) photoCust = old.photoCustomer;
+        if(!photoCnic && old) photoCnic = old.photoCnic;
+    }
+
+    const issueDate = document.getElementById('issueDate').value;
+    const oldMonths = parseFloat(document.getElementById('pastPaidMonths').value) || 0;
+    let nextDue = new Date(issueDate);
+    nextDue.setMonth(nextDue.getMonth() + oldMonths + 1);
+
+    const data = {
+        accountId: id,
+        buyerName: document.getElementById('buyerName').value,
+        phone: document.getElementById('phone').value,
+        fatherName: document.getElementById('fatherName').value,
+        homeAddress: document.getElementById('homeAddress').value,
+        items: document.getElementById('items').value,
+        totalPrice: parseFloat(document.getElementById('totalPrice').value) || 0,
+        advance: parseFloat(document.getElementById('advance').value) || 0,
+        monthlyInstallment: parseFloat(document.getElementById('monthlyInstallment').value) || 0,
+        pastPaidMonths: oldMonths,
+        currentBalance: parseFloat(document.getElementById('currentBalance').value) || 0,
+        g1Name: document.getElementById('g1Name').value,
+        g2Name: document.getElementById('g2Name').value,
+        photoCustomer: photoCust,
+        photoCnic: photoCnic,
+        issueDate: issueDate,
+        nextDueDate: nextDue.toISOString(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
 
     try {
-        await db.collection('customers').doc(id).update({
-            balance: newBal,
-            nextDueDate: nextDate.toISOString()
-        });
-        
-        await db.collection('customers').doc(id).collection('payments').add({
-            amount: amount,
-            date: new Date().toISOString().split('T')[0]
-        });
-        
-        showLoading(false);
+        await db.collection('customers').doc(id).set(data, {merge: true});
+        alert("Customer Save Ho Gaya!");
+        resetForm();
         loadData();
+        switchView('due-view');
     } catch(e) {
-        showLoading(false);
-        alert(e.message);
+        alert("Error: " + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "Save Customer";
     }
 }
 
-function calcBalance() {
-    const total = Number(document.getElementById('inp-total').value);
-    const adv = Number(document.getElementById('inp-advance').value);
-    const old = Number(document.getElementById('inp-old').value);
-    const inst = Number(document.getElementById('inp-monthly').value);
+// ==========================================
+// 8. HELPERS & MODALS
+// ==========================================
+function switchView(viewId) {
+    document.querySelectorAll('.content-view').forEach(el => el.classList.add('hidden'));
+    document.getElementById(viewId).classList.remove('hidden');
     
-    const paid = adv + (old * inst);
-    document.getElementById('inp-balance').value = total - paid;
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    if(viewId === 'due-view') document.getElementById('nav-due').classList.add('active');
+    if(viewId === 'search-view') document.getElementById('nav-search').classList.add('active');
+    if(viewId === 'add-view') document.getElementById('nav-add').classList.add('active');
+    if(viewId === 'list-view') document.getElementById('nav-list').classList.add('active');
 }
 
-function getNextDate(dateStr) {
-    const d = new Date(dateStr);
-    d.setMonth(d.getMonth() + 1);
-    return d.toISOString();
+function resetForm() {
+    document.getElementById('customer-form').reset();
+    document.getElementById('form-mode').value = 'add';
+    document.getElementById('preview-customer').innerHTML = "";
+    document.getElementById('preview-cnic').innerHTML = "";
+    delete document.getElementById('photo-customer').dataset.compressed;
+    delete document.getElementById('photo-cnic').dataset.compressed;
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('issueDate').value = today;
 }
 
-function previewImage(input, divId) {
-    const file = input.files[0];
-    if(file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            document.getElementById(divId).innerHTML = `<img src="${e.target.result}">`;
-        }
-        reader.readAsDataURL(file);
-    }
+function openDetails(id) {
+    currentDetailId = id; // Ye variable DELETE ke liye bohat zaroori hai
+    const c = allData.find(x => x.id === id);
+    if(!c) return;
+
+    let infoHtml = `
+        <div class="info-row"><strong>ID:</strong> <span>${c.accountId}</span></div>
+        <div class="info-row"><strong>Name:</strong> <span>${c.buyerName}</span></div>
+        <div class="info-row"><strong>Phone:</strong> <span><a href="tel:${c.phone}">${c.phone}</a></span></div>
+        <div class="info-row"><strong>Father:</strong> <span>${c.fatherName || '-'}</span></div>
+        <div class="info-row"><strong>Address:</strong> <span>${c.homeAddress || '-'}</span></div>
+        <div class="info-row"><strong>Total:</strong> <span>${c.totalPrice}</span></div>
+        <div class="info-row"><strong>Paid:</strong> <span>${(c.pastPaidMonths*c.monthlyInstallment)+c.advance}</span></div>
+        <div class="info-row"><strong>Remaining:</strong> <span style="color:red; font-weight:bold;">${c.currentBalance}</span></div>
+    `;
+    document.getElementById('d-info').innerHTML = infoHtml;
+
+    document.getElementById('d-img-cust').innerHTML = c.photoCustomer ? `<img src="${c.photoCustomer}">` : "No Photo";
+    document.getElementById('d-img-cnic').innerHTML = c.photoCnic ? `<img src="${c.photoCnic}">` : "No Photo";
+
+    const tbody = document.getElementById('ledger-body');
+    tbody.innerHTML = "";
+    tbody.innerHTML += `<tr><td>Start</td><td>Advance Paid (${c.advance})</td></tr>`;
+    
+    db.collection('customers').doc(id).collection('payments').orderBy('date', 'desc').get().then(snap => {
+        if(snap.empty) tbody.innerHTML += `<tr><td colspan="2">No recent payments</td></tr>`;
+        snap.forEach(doc => {
+            const p = doc.data();
+            tbody.innerHTML += `<tr><td>${p.date}</td><td style="color:green;">Received Rs. ${p.amount}</td></tr>`;
+        });
+    });
+
+    document.getElementById('details-modal').classList.remove('hidden');
 }
 
-function switchView(id) {
-    document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-    document.getElementById(id).classList.remove('hidden');
-    document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-    if(id==='due-view') document.getElementById('btn-due').classList.add('active');
-    if(id==='search-view') document.getElementById('btn-search').classList.add('active');
-    if(id==='add-view') document.getElementById('btn-add').classList.add('active');
+function closeModal(id) {
+    document.getElementById(id).classList.add('hidden');
 }
 
-function updateStats() {
-    document.getElementById('total-customers').innerText = allData.length;
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    const due = allData.filter(c => {
-        let d = new Date(c.nextDueDate);
-        d.setHours(0,0,0,0);
-        return d <= today && c.balance > 0;
-    }).length;
-    document.getElementById('due-today').innerText = due;
-}
-
-function showLoading(show, text) {
-    const el = document.getElementById('loading-overlay');
-    if(show) {
-        el.classList.remove('hidden');
-        document.getElementById('loading-text').innerText = text || "Loading...";
-    } else {
-        el.classList.add('hidden');
-    }
-}
-
-function closeModal() { document.getElementById('profile-modal').classList.add('hidden'); }
-function resetForm() { 
-    document.getElementById('customer-form').reset(); 
-    document.getElementById('edit-id').value = "";
-    document.getElementById('prev-cust').innerHTML = "";
-    document.getElementById('prev-cnic').innerHTML = "";
-}
-
-function zoomImage(imgId) {
-    const src = document.getElementById(imgId).src;
-    if(src && src.includes('data:image')) {
-        document.getElementById('zoomed-image').src = src;
-        document.getElementById('zoom-modal').classList.remove('hidden');
-    }
+function toggleLanguage() {
+    currentLang = currentLang === 'en' ? 'ur' : 'en';
+    const root = document.getElementById('htmlRoot');
+    root.setAttribute('dir', currentLang === 'ur' ? 'rtl' : 'ltr');
+    document.querySelectorAll('[data-en]').forEach(el => {
+        el.innerText = el.getAttribute(`data-${currentLang}`);
+    });
 }
