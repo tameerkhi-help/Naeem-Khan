@@ -1,5 +1,5 @@
 // ==========================================
-// 1. CONFIGURATION & SETUP
+// 1. CONFIGURATION
 // ==========================================
 const firebaseConfig = {
     apiKey: "AIzaSyBUSuozhIlEVuxf8zJAd4NAetRTt99fp_w",
@@ -14,39 +14,31 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Global Variables
+// Global State
 let currentLang = 'en';
 let allData = [];
 let currentDetailId = null;
 
 // ==========================================
-// 2. SECURITY & AUTH (STRICT)
+// 2. SECURITY (FORCE LOGOUT ON LOAD)
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    // SECURITY FIX: Set persistence to NONE. 
-    // This ensures logout on refresh/tab close.
-    auth.setPersistence(firebase.auth.Auth.Persistence.NONE)
-    .then(() => {
-        // Only check state if already in memory, otherwise force login screen
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                showDashboard();
-                loadData();
-            } else {
-                showLogin();
-            }
-        });
+    // FORCE LOGOUT everytime page loads
+    auth.signOut().then(() => {
+        // Clear everything visually
+        document.getElementById('login-section').classList.remove('hidden');
+        document.getElementById('dashboard-section').classList.add('hidden');
     });
 
     // Language
     document.getElementById('langToggle').addEventListener('click', toggleLanguage);
     
-    // Set default dates
+    // Dates
     const today = new Date().toISOString().split('T')[0];
     if(document.getElementById('issueDate')) document.getElementById('issueDate').value = today;
-    if(document.getElementById('pay-date')) document.getElementById('pay-date').value = today;
 });
 
+// LOGIN
 function handleLogin() {
     const email = document.getElementById('admin-email').value;
     const pass = document.getElementById('admin-password').value;
@@ -54,73 +46,101 @@ function handleLogin() {
     const err = document.getElementById('login-error');
 
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    btn.innerHTML = "Verifying...";
     err.innerText = "";
 
-    auth.signInWithEmailAndPassword(email, pass)
-    .catch(error => {
+    // Set persistence to NONE (Session only)
+    auth.setPersistence(firebase.auth.Auth.Persistence.NONE)
+    .then(() => {
+        return auth.signInWithEmailAndPassword(email, pass);
+    })
+    .then((userCredential) => {
+        // Success
+        document.getElementById('login-section').classList.add('hidden');
+        document.getElementById('dashboard-section').classList.remove('hidden');
+        loadData(); // Load data only after login
+    })
+    .catch((error) => {
         btn.disabled = false;
-        btn.innerText = currentLang === 'ur' ? "لاگ ان" : "Login";
+        btn.innerText = currentLang === 'ur' ? "محفوظ لاگ ان" : "Login Securely";
         err.innerText = "Error: " + error.message;
     });
 }
 
 function handleLogout() {
     auth.signOut().then(() => {
-        window.location.reload(); // Force reload to clear memory
+        window.location.reload();
     });
 }
 
-function showLogin() {
-    document.getElementById('login-section').classList.remove('hidden');
-    document.getElementById('dashboard-section').classList.add('hidden');
-}
+// ==========================================
+// 3. IMAGE COMPRESSION (NEW)
+// ==========================================
+function compressAndPreview(input, previewId) {
+    const file = input.files[0];
+    if (!file) return;
 
-function showDashboard() {
-    document.getElementById('login-section').classList.add('hidden');
-    document.getElementById('dashboard-section').classList.remove('hidden');
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = function (event) {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = function () {
+            // Compress Logic
+            const canvas = document.createElement('canvas');
+            const maxWidth = 800; // Resize to max 800px width
+            const scaleSize = maxWidth / img.width;
+            canvas.width = maxWidth;
+            canvas.height = img.height * scaleSize;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            // Convert to JPEG with 0.7 quality
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+
+            // Show Preview
+            document.getElementById(previewId).innerHTML = `<img src="${dataUrl}">`;
+            
+            // Store dataUrl in input element as a property to retrieve later
+            input.dataset.compressed = dataUrl;
+        }
+    }
 }
 
 // ==========================================
-// 3. NAVIGATION
+// 4. DATA LOADING & VIEWS
 // ==========================================
 function switchView(viewId) {
     document.querySelectorAll('.content-view').forEach(el => el.classList.add('hidden'));
     document.getElementById(viewId).classList.remove('hidden');
     
-    // Update Bottom Nav Active State
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
     if(viewId === 'due-view') document.getElementById('nav-due').classList.add('active');
     if(viewId === 'search-view') document.getElementById('nav-search').classList.add('active');
     if(viewId === 'add-view') document.getElementById('nav-add').classList.add('active');
     if(viewId === 'list-view') document.getElementById('nav-list').classList.add('active');
-
-    if(viewId === 'due-view') loadDueCustomers();
-    if(viewId === 'list-view') loadAllCustomers();
 }
 
-// ==========================================
-// 4. DATA HANDLING
-// ==========================================
 async function loadData() {
     try {
         const snapshot = await db.collection('customers').orderBy('updatedAt', 'desc').get();
         allData = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+        
         updateStats();
-        loadDueCustomers();
+        loadDueCustomers(); // Refresh Due List
+        loadAllCustomers(); // Refresh All List
     } catch (e) { console.error(e); }
 }
 
 function updateStats() {
     document.getElementById('total-customers').innerText = allData.length;
     
-    let totalBal = 0;
     let dueCount = 0;
     const today = new Date();
     today.setHours(0,0,0,0);
 
     allData.forEach(c => {
-        totalBal += (c.currentBalance || 0);
         if(c.currentBalance > 0 && c.nextDueDate) {
             let dd = new Date(c.nextDueDate);
             dd.setHours(0,0,0,0);
@@ -128,137 +148,11 @@ function updateStats() {
         }
     });
 
-    document.getElementById('total-balance').innerText = "Rs. " + totalBal.toLocaleString();
     document.getElementById('due-today').innerText = dueCount;
 }
 
 // ==========================================
-// 5. FORM & SAVING (With Photo & Old Logic)
-// ==========================================
-function previewImage(input, previewId) {
-    const container = document.getElementById(previewId);
-    container.innerHTML = "";
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            container.innerHTML = `<img src="${e.target.result}">`;
-        }
-        reader.readAsDataURL(input.files[0]);
-    }
-}
-
-function calculateBalance() {
-    const total = parseFloat(document.getElementById('totalPrice').value) || 0;
-    const adv = parseFloat(document.getElementById('advance').value) || 0;
-    const monthly = parseFloat(document.getElementById('monthlyInstallment').value) || 0;
-    const oldMonths = parseFloat(document.getElementById('pastPaidMonths').value) || 0;
-    
-    // NEW LOGIC: Deduct Advance AND Old Paid Installments
-    let oldPaidAmount = oldMonths * monthly;
-    let remaining = total - adv - oldPaidAmount;
-    
-    if(remaining < 0) remaining = 0;
-    document.getElementById('currentBalance').value = remaining;
-}
-
-async function saveCustomer() {
-    const btn = document.getElementById('save-btn');
-    btn.disabled = true;
-    btn.innerText = "Processing...";
-
-    const mode = document.getElementById('form-mode').value;
-    const id = mode === 'edit' ? document.getElementById('original-id').value : document.getElementById('accountId').value;
-
-    // Validation
-    if(!id || !document.getElementById('buyerName').value) {
-        alert("Account ID and Name are required");
-        btn.disabled = false; return;
-    }
-
-    // Image Handling (Base64)
-    let photoCust = null;
-    let photoCnic = null;
-
-    const fileCust = document.getElementById('photo-customer').files[0];
-    const fileCnic = document.getElementById('photo-cnic').files[0];
-
-    // Helper to read file
-    const readFile = (file) => new Promise((resolve) => {
-        if(!file) resolve(null);
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result);
-        reader.readAsDataURL(file);
-    });
-
-    if(fileCust) photoCust = await readFile(fileCust);
-    if(fileCnic) photoCnic = await readFile(fileCnic);
-
-    // If editing, keep old photos if no new ones selected
-    if(mode === 'edit') {
-        const oldData = allData.find(x => x.id === id);
-        if(!photoCust && oldData.photoCustomer) photoCust = oldData.photoCustomer;
-        if(!photoCnic && oldData.photoCnic) photoCnic = oldData.photoCnic;
-    }
-
-    // Logic for Dates
-    const issueDate = document.getElementById('issueDate').value;
-    const oldMonths = parseFloat(document.getElementById('pastPaidMonths').value) || 0;
-    
-    // Calculate Next Due Date: Issue Date + Old Months + 1
-    let nextDue = new Date(issueDate);
-    nextDue.setMonth(nextDue.getMonth() + oldMonths + 1);
-
-    const customerData = {
-        accountId: id,
-        issueDate: issueDate,
-        buyerName: document.getElementById('buyerName').value,
-        fatherName: document.getElementById('fatherName').value,
-        phone: document.getElementById('phone').value,
-        profession: document.getElementById('profession').value,
-        homeAddress: document.getElementById('homeAddress').value,
-        officeAddress: document.getElementById('officeAddress').value,
-        items: document.getElementById('items').value,
-        modelNumber: document.getElementById('modelNumber').value,
-        totalPrice: parseFloat(document.getElementById('totalPrice').value) || 0,
-        advance: parseFloat(document.getElementById('advance').value) || 0,
-        monthlyInstallment: parseFloat(document.getElementById('monthlyInstallment').value) || 0,
-        pastPaidMonths: oldMonths, // Important for history
-        currentBalance: parseFloat(document.getElementById('currentBalance').value) || 0,
-        g1Name: document.getElementById('g1Name').value,
-        g2Name: document.getElementById('g2Name').value,
-        photoCustomer: photoCust,
-        photoCnic: photoCnic,
-        nextDueDate: nextDue.toISOString(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
-
-    try {
-        await db.collection('customers').doc(id).set(customerData, {merge: true});
-        alert("Success!");
-        resetForm();
-        loadData();
-        switchView('due-view');
-    } catch(e) {
-        alert("Error: " + e.message);
-    } finally {
-        btn.disabled = false;
-        btn.innerText = "Save Customer";
-    }
-}
-
-function resetForm() {
-    document.getElementById('customer-form').reset();
-    document.getElementById('form-mode').value = 'add';
-    document.getElementById('form-heading').innerText = currentLang === 'ur' ? 'نیا کسٹمر شامل کریں' : 'Add New Customer';
-    document.getElementById('preview-customer').innerHTML = "";
-    document.getElementById('preview-cnic').innerHTML = "";
-    
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('issueDate').value = today;
-}
-
-// ==========================================
-// 6. VIEWS & TABLES
+// 5. QUICK PAYMENT & DUE LIST (UPDATED)
 // ==========================================
 function loadDueCustomers() {
     const tbody = document.getElementById('due-body');
@@ -277,221 +171,252 @@ function loadDueCustomers() {
     else document.getElementById('no-due-msg').classList.add('hidden');
 
     dueList.forEach(c => {
-        let dDate = new Date(c.nextDueDate).toLocaleDateString();
+        // THE GREEN BUTTON
+        const btnHtml = `
+        <button class="btn-quick-pay" onclick="quickPay('${c.id}', ${c.monthlyInstallment})">
+            <i class="fas fa-check-circle"></i> 
+            ${currentLang === 'ur' ? '1 مہینہ ادا کریں' : '1 Month Paid'}
+        </button>`;
+
         let row = `<tr>
-            <td data-en="Account ID" data-ur="آئی ڈی"><b>${c.accountId}</b></td>
+            <td data-en="ID" data-ur="آئی ڈی"><b>${c.accountId}</b></td>
             <td data-en="Name" data-ur="نام">${c.buyerName}</td>
             <td data-en="Phone" data-ur="فون"><a href="tel:${c.phone}">${c.phone}</a></td>
             <td data-en="Inst." data-ur="قسط">Rs. ${c.monthlyInstallment}</td>
-            <td data-en="Date" data-ur="تاریخ" class="text-red">${dDate}</td>
-            <td>
-                <button class="btn-action btn-pay" onclick="openPaymentModal('${c.id}')">Pay</button>
-                <button class="btn-action btn-view" onclick="openDetails('${c.id}')">View</button>
-            </td>
+            <td data-en="Quick Action" data-ur="فوری ایکشن">${btnHtml}</td>
         </tr>`;
         tbody.innerHTML += row;
     });
 }
 
-function loadAllCustomers() {
-    const tbody = document.getElementById('all-body');
-    tbody.innerHTML = "";
-    const filter = document.getElementById('filter-input').value.toLowerCase();
+// THE QUICK PAY FUNCTION
+async function quickPay(id, amount) {
+    if(!confirm("Are you sure received Rs. " + amount + "?")) return;
 
-    allData.forEach(c => {
-        if(filter && !JSON.stringify(c).toLowerCase().includes(filter)) return;
-        
-        let row = `<tr>
-            <td data-en="ID" data-ur="آئی ڈی">${c.accountId}</td>
-            <td data-en="Name" data-ur="نام">${c.buyerName}</td>
-            <td data-en="Phone" data-ur="فون">${c.phone}</td>
-            <td data-en="Bal" data-ur="بقایا">Rs. ${c.currentBalance}</td>
-            <td>
-                <button class="btn-action btn-view" onclick="openDetails('${c.id}')"><i class="fas fa-eye"></i></button>
-                <button class="btn-action btn-delete" onclick="openDetails('${c.id}')"><i class="fas fa-edit"></i></button>
-            </td>
-        </tr>`;
-        tbody.innerHTML += row;
-    });
+    const c = allData.find(x => x.id === id);
+    const newBal = c.currentBalance - amount;
     
-    document.getElementById('filter-input').onkeyup = loadAllCustomers;
+    // Increment Date by 1 Month
+    let nextDate = new Date(c.nextDueDate);
+    nextDate.setMonth(nextDate.getMonth() + 1);
+
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    try {
+        await db.collection('customers').doc(id).update({
+            currentBalance: newBal,
+            nextDueDate: nextDate.toISOString(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // Add History
+        await db.collection('customers').doc(id).collection('payments').add({
+            amount: amount,
+            date: todayStr,
+            note: "Quick Pay Button"
+        });
+
+        alert("Payment Saved!");
+        loadData(); // Refresh everything
+    } catch(e) {
+        alert("Error: " + e.message);
+    }
 }
 
 // ==========================================
-// 7. SEARCH & DETAILS
+// 6. SEARCH & ALL LIST
 // ==========================================
 function performSearch() {
     const q = document.getElementById('search-input').value.toLowerCase();
-    const type = document.querySelector('input[name="searchType"]:checked').value;
     const grid = document.getElementById('search-results');
     grid.innerHTML = "";
 
     const results = allData.filter(c => {
-        if(type === 'id') return c.accountId.toString().toLowerCase() === q;
-        if(type === 'name') return c.buyerName.toLowerCase().includes(q);
-        if(type === 'phone') return c.phone && c.phone.includes(q);
+        return c.accountId.toString().toLowerCase().includes(q) || 
+               c.buyerName.toLowerCase().includes(q) || 
+               (c.phone && c.phone.includes(q));
     });
 
-    if(results.length === 0) grid.innerHTML = "<p>No results found</p>";
-
     results.forEach(c => {
-        let card = `<div class="stat-box" style="display:block;">
+        // Show Green Button in Search too
+        const btnHtml = `
+        <button class="btn-quick-pay" style="width:100%; justify-content:center; margin-top:10px;" onclick="quickPay('${c.id}', ${c.monthlyInstallment})">
+            <i class="fas fa-check-circle"></i> 1 Month Paid (Rs. ${c.monthlyInstallment})
+        </button>`;
+
+        let card = `<div class="stat-box" style="display:block; margin-bottom:10px;">
             <div style="display:flex; justify-content:space-between;">
                 <h4>${c.buyerName}</h4>
                 <span class="status-badge">${c.accountId}</span>
             </div>
             <p>Phone: ${c.phone}</p>
             <p>Balance: <b>Rs. ${c.currentBalance}</b></p>
-            <div style="margin-top:10px; display:flex; gap:10px;">
-                <button class="btn-action btn-pay" onclick="openPaymentModal('${c.id}')" style="flex:1;">Pay</button>
-                <button class="btn-action btn-view" onclick="openDetails('${c.id}')" style="flex:1;">View</button>
-            </div>
+            ${c.currentBalance > 0 ? btnHtml : '<p style="color:green; text-align:center;">Fully Paid</p>'}
+            <button class="btn-secondary" style="width:100%; margin-top:5px;" onclick="openDetails('${c.id}')">View Details</button>
         </div>`;
         grid.innerHTML += card;
     });
 }
 
+function loadAllCustomers() {
+    const tbody = document.getElementById('all-body');
+    tbody.innerHTML = "";
+    
+    allData.forEach(c => {
+        let row = `<tr>
+            <td data-en="ID" data-ur="آئی ڈی">${c.accountId}</td>
+            <td data-en="Name" data-ur="نام">${c.buyerName}</td>
+            <td data-en="Balance" data-ur="بقایا">Rs. ${c.currentBalance}</td>
+            <td data-en="Action" data-ur="ایکشن">
+                <button class="btn-edit" onclick="openDetails('${c.id}')">View</button>
+            </td>
+        </tr>`;
+        tbody.innerHTML += row;
+    });
+}
+
+function filterAllList() {
+    const q = document.getElementById('all-filter').value.toLowerCase();
+    const rows = document.getElementById('all-body').getElementsByTagName('tr');
+    for(let row of rows) {
+        row.style.display = row.innerText.toLowerCase().includes(q) ? "" : "none";
+    }
+}
+
+// ==========================================
+// 7. SAVE CUSTOMER (WITH COMPRESSION)
+// ==========================================
+function calculateBalance() {
+    const total = parseFloat(document.getElementById('totalPrice').value) || 0;
+    const adv = parseFloat(document.getElementById('advance').value) || 0;
+    const monthly = parseFloat(document.getElementById('monthlyInstallment').value) || 0;
+    const oldMonths = parseFloat(document.getElementById('pastPaidMonths').value) || 0;
+    
+    let paid = (oldMonths * monthly) + adv;
+    let bal = total - paid;
+    if(bal < 0) bal = 0;
+    document.getElementById('currentBalance').value = bal;
+}
+
+async function saveCustomer() {
+    const btn = document.getElementById('save-btn');
+    btn.disabled = true;
+    btn.innerText = "Saving...";
+
+    const mode = document.getElementById('form-mode').value;
+    const id = mode === 'edit' ? document.getElementById('original-id').value : document.getElementById('accountId').value;
+
+    // Retrieve Compressed Images
+    const imgCustInput = document.getElementById('photo-customer');
+    const imgCnicInput = document.getElementById('photo-cnic');
+    
+    let photoCust = imgCustInput.dataset.compressed || null;
+    let photoCnic = imgCnicInput.dataset.compressed || null;
+
+    // If edit mode and no new photo, keep old
+    if(mode === 'edit') {
+        const old = allData.find(x => x.id === id);
+        if(!photoCust) photoCust = old.photoCustomer;
+        if(!photoCnic) photoCnic = old.photoCnic;
+    }
+
+    // Logic for Dates
+    const issueDate = document.getElementById('issueDate').value;
+    const oldMonths = parseFloat(document.getElementById('pastPaidMonths').value) || 0;
+    let nextDue = new Date(issueDate);
+    nextDue.setMonth(nextDue.getMonth() + oldMonths + 1);
+
+    const data = {
+        accountId: id,
+        buyerName: document.getElementById('buyerName').value,
+        phone: document.getElementById('phone').value,
+        fatherName: document.getElementById('fatherName').value,
+        homeAddress: document.getElementById('homeAddress').value,
+        items: document.getElementById('items').value,
+        totalPrice: parseFloat(document.getElementById('totalPrice').value) || 0,
+        advance: parseFloat(document.getElementById('advance').value) || 0,
+        monthlyInstallment: parseFloat(document.getElementById('monthlyInstallment').value) || 0,
+        pastPaidMonths: oldMonths,
+        currentBalance: parseFloat(document.getElementById('currentBalance').value) || 0,
+        g1Name: document.getElementById('g1Name').value,
+        g2Name: document.getElementById('g2Name').value,
+        photoCustomer: photoCust,
+        photoCnic: photoCnic,
+        issueDate: issueDate,
+        nextDueDate: nextDue.toISOString(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    try {
+        await db.collection('customers').doc(id).set(data, {merge: true});
+        alert("Customer Saved Successfully!");
+        resetForm();
+        loadData();
+        switchView('due-view');
+    } catch(e) {
+        alert("Error: " + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "Save Customer";
+    }
+}
+
+function resetForm() {
+    document.getElementById('customer-form').reset();
+    document.getElementById('form-mode').value = 'add';
+    document.getElementById('preview-customer').innerHTML = "";
+    document.getElementById('preview-cnic').innerHTML = "";
+    document.getElementById('photo-customer').dataset.compressed = "";
+    document.getElementById('photo-cnic').dataset.compressed = "";
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('issueDate').value = today;
+}
+
+// ==========================================
+// 8. DETAILS MODAL
+// ==========================================
 function openDetails(id) {
     currentDetailId = id;
     const c = allData.find(x => x.id === id);
     if(!c) return;
 
-    // Fill Info
-    document.getElementById('d-id').innerText = c.accountId;
-    document.getElementById('d-name').innerText = c.buyerName;
-    document.getElementById('d-father').innerText = c.fatherName || '-';
-    document.getElementById('d-phone').innerText = c.phone;
-    document.getElementById('d-address').innerText = c.homeAddress || '-';
-    document.getElementById('d-office').innerText = c.officeAddress || '-';
-    document.getElementById('d-guarantors').innerText = `${c.g1Name || '-'} / ${c.g2Name || '-'}`;
-
-    document.getElementById('d-total').innerText = c.totalPrice;
-    document.getElementById('d-remaining').innerText = c.currentBalance;
-    const paid = c.totalPrice - c.currentBalance;
-    document.getElementById('d-paid').innerText = paid;
+    // Fill Info HTML
+    let infoHtml = `
+        <div class="info-row"><strong>ID:</strong> <span>${c.accountId}</span></div>
+        <div class="info-row"><strong>Name:</strong> <span>${c.buyerName}</span></div>
+        <div class="info-row"><strong>Phone:</strong> <span><a href="tel:${c.phone}">${c.phone}</a></span></div>
+        <div class="info-row"><strong>Father:</strong> <span>${c.fatherName || '-'}</span></div>
+        <div class="info-row"><strong>Address:</strong> <span>${c.homeAddress || '-'}</span></div>
+        <div class="info-row"><strong>Guarantors:</strong> <span>${c.g1Name} / ${c.g2Name}</span></div>
+        <div class="info-row"><strong>Total Price:</strong> <span>${c.totalPrice}</span></div>
+        <div class="info-row"><strong>Paid (Adv+Old):</strong> <span>${(c.pastPaidMonths*c.monthlyInstallment)+c.advance}</span></div>
+        <div class="info-row"><strong>Remaining:</strong> <span style="color:red; font-weight:bold;">${c.currentBalance}</span></div>
+    `;
+    document.getElementById('d-info').innerHTML = infoHtml;
 
     // Images
-    const imgC = document.getElementById('detail-photo-customer');
-    const imgID = document.getElementById('detail-photo-cnic');
-    imgC.innerHTML = c.photoCustomer ? `<img src="${c.photoCustomer}">` : "No Photo";
-    imgID.innerHTML = c.photoCnic ? `<img src="${c.photoCnic}">` : "No Photo";
+    document.getElementById('d-img-cust').innerHTML = c.photoCustomer ? `<img src="${c.photoCustomer}">` : "No Photo";
+    document.getElementById('d-img-cnic').innerHTML = c.photoCnic ? `<img src="${c.photoCnic}">` : "No Photo";
 
-    // GENERATE HISTORY LEDGER (With Old Logic)
+    // Ledger Logic
     const tbody = document.getElementById('ledger-body');
     tbody.innerHTML = "";
     
-    // 1. Show Advance
-    tbody.innerHTML += `<tr><td>Start</td><td><span class="status-badge">Advance</span></td><td>Rs. ${c.advance}</td></tr>`;
-
-    // 2. Show Old Paid Months (if any)
-    const oldMonths = c.pastPaidMonths || 0;
-    if(oldMonths > 0) {
-        tbody.innerHTML += `<tr>
-            <td>Previous History</td>
-            <td><span class="status-badge" style="background:purple;">Old Record</span></td>
-            <td>${oldMonths} Months Paid</td>
-        </tr>`;
-    }
-
-    // 3. Show Real Payments (From subcollection ideally, but simplified logic here)
-    // Note: To show full history, we need to fetch the subcollection 'payments'
-    db.collection('customers').doc(id).collection('payments').orderBy('date').get().then(snap => {
+    // Add Advance Row
+    tbody.innerHTML += `<tr><td>Start</td><td>Advance Paid (${c.advance})</td></tr>`;
+    
+    // Add History Rows from Subcollection
+    db.collection('customers').doc(id).collection('payments').orderBy('date', 'desc').get().then(snap => {
+        if(snap.empty) {
+            tbody.innerHTML += `<tr><td colspan="2">No recent payments</td></tr>`;
+        }
         snap.forEach(doc => {
             const p = doc.data();
-            tbody.innerHTML += `<tr>
-                <td>${p.date}</td>
-                <td><span class="status-badge">Received</span></td>
-                <td>Rs. ${p.amount}</td>
-            </tr>`;
+            tbody.innerHTML += `<tr><td>${p.date}</td><td style="color:green;">Received Rs. ${p.amount}</td></tr>`;
         });
     });
 
     document.getElementById('details-modal').classList.remove('hidden');
-}
-
-// ==========================================
-// 8. PAYMENT & ACTIONS
-// ==========================================
-function openPaymentModal(id) {
-    currentDetailId = id;
-    const c = allData.find(x => x.id === id);
-    document.getElementById('pay-name').innerText = c.buyerName;
-    document.getElementById('pay-balance').innerText = c.currentBalance;
-    document.getElementById('pay-amount').value = c.monthlyInstallment;
-    document.getElementById('payment-modal').classList.remove('hidden');
-}
-
-function submitPayment() {
-    const amt = parseFloat(document.getElementById('pay-amount').value);
-    const date = document.getElementById('pay-date').value;
-    const note = document.getElementById('pay-note').value;
-    const c = allData.find(x => x.id === currentDetailId);
-
-    if(!amt || amt <= 0) return alert("Invalid Amount");
-
-    const newBal = c.currentBalance - amt;
-    
-    // Increment Due Date by 1 Month
-    let nextDate = new Date(c.nextDueDate);
-    nextDate.setMonth(nextDate.getMonth() + 1);
-
-    db.collection('customers').doc(currentDetailId).update({
-        currentBalance: newBal,
-        nextDueDate: nextDate.toISOString(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => {
-        // Add Record
-        return db.collection('customers').doc(currentDetailId).collection('payments').add({
-            amount: amt, date: date, note: note
-        });
-    }).then(() => {
-        alert("Payment Saved");
-        closeModal('payment-modal');
-        loadData();
-    }).catch(e => alert(e.message));
-}
-
-function editCustomerFromModal() {
-    closeModal('details-modal');
-    const c = allData.find(x => x.id === currentDetailId);
-    
-    document.getElementById('form-mode').value = 'edit';
-    document.getElementById('original-id').value = c.id;
-    document.getElementById('form-heading').innerText = "Edit Customer";
-    
-    document.getElementById('accountId').value = c.accountId;
-    document.getElementById('buyerName').value = c.buyerName;
-    document.getElementById('phone').value = c.phone;
-    // ... Fill rest of the fields similarly ...
-    // Since you asked for COMPLETE code, I'm assuming you can map the rest 
-    // based on the variable names above, but essential ones are here.
-    document.getElementById('fatherName').value = c.fatherName || '';
-    document.getElementById('profession').value = c.profession || '';
-    document.getElementById('homeAddress').value = c.homeAddress || '';
-    document.getElementById('officeAddress').value = c.officeAddress || '';
-    document.getElementById('items').value = c.items || '';
-    document.getElementById('modelNumber').value = c.modelNumber || '';
-    document.getElementById('totalPrice').value = c.totalPrice;
-    document.getElementById('advance').value = c.advance;
-    document.getElementById('monthlyInstallment').value = c.monthlyInstallment;
-    document.getElementById('pastPaidMonths').value = c.pastPaidMonths || 0;
-    document.getElementById('currentBalance').value = c.currentBalance;
-    document.getElementById('g1Name').value = c.g1Name || '';
-    document.getElementById('g2Name').value = c.g2Name || '';
-    document.getElementById('issueDate').value = c.issueDate;
-
-    switchView('add-view');
-}
-
-function deleteCustomerFromModal() {
-    if(confirm("Are you sure you want to delete this customer?")) {
-        db.collection('customers').doc(currentDetailId).delete()
-        .then(() => {
-            alert("Deleted");
-            closeModal('details-modal');
-            loadData();
-        });
-    }
 }
 
 function closeModal(id) {
@@ -502,7 +427,6 @@ function toggleLanguage() {
     currentLang = currentLang === 'en' ? 'ur' : 'en';
     const root = document.getElementById('htmlRoot');
     root.setAttribute('dir', currentLang === 'ur' ? 'rtl' : 'ltr');
-    
     document.querySelectorAll('[data-en]').forEach(el => {
         el.innerText = el.getAttribute(`data-${currentLang}`);
     });
