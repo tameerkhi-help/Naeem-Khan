@@ -1,7 +1,6 @@
 // ==========================================
 // 1. FIREBASE CONFIGURATION
 // ==========================================
-// Yahan apni Configuration wapis check karein ke theek hai
 const firebaseConfig = {
     apiKey: "AIzaSyBUSuozhIlEVuxf8zJAd4NAetRTt99fp_w",
     authDomain: "naeemjan-c7f46.firebaseapp.com",
@@ -19,21 +18,22 @@ const db = firebase.firestore();
 // Global Variables
 let currentLang = 'en';
 let allData = [];
-let currentDetailId = null;
+let currentDetailId = null; // Ye variable delete ke liye zaroori hai
 
 // ==========================================
 // 2. SECURITY & LOGIN LOGIC
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    // Page load hote hi logout kar do (Security)
+    // FORCE LOGOUT on Page Load (Security)
     auth.signOut().then(() => {
         document.getElementById('login-section').classList.remove('hidden');
         document.getElementById('dashboard-section').classList.add('hidden');
     });
 
+    // Event Listeners
     document.getElementById('langToggle').addEventListener('click', toggleLanguage);
     
-    // Dates set karo
+    // Set Default Date
     const today = new Date().toISOString().split('T')[0];
     if(document.getElementById('issueDate')) document.getElementById('issueDate').value = today;
 });
@@ -50,24 +50,23 @@ function handleLogin() {
     }
 
     btn.disabled = true;
-    btn.innerText = "Checking...";
+    btn.innerText = "Verifying...";
     err.innerText = "";
 
-    // Persistence NONE rakha hai taake refresh par logout ho jaye
+    // Persistence NONE = Refresh par logout
     auth.setPersistence(firebase.auth.Auth.Persistence.NONE)
     .then(() => {
         return auth.signInWithEmailAndPassword(email, pass);
     })
     .then((userCredential) => {
-        // Login Kamyab
         document.getElementById('login-section').classList.add('hidden');
         document.getElementById('dashboard-section').classList.remove('hidden');
-        loadData(); // <--- AB DATA LOAD HOGA
+        loadData(); // Login ke baad data load hoga
     })
     .catch((error) => {
         btn.disabled = false;
         btn.innerText = "Login Securely";
-        err.innerText = "Login Failed: " + error.message;
+        err.innerText = "Error: " + error.message;
     });
 }
 
@@ -78,7 +77,7 @@ function handleLogout() {
 }
 
 // ==========================================
-// 3. IMAGE AUTO-COMPRESS (FIXED FOR DATABASE)
+// 3. IMAGE AUTO-COMPRESS
 // ==========================================
 function compressAndPreview(input, previewId) {
     const file = input.files[0];
@@ -91,8 +90,7 @@ function compressAndPreview(input, previewId) {
         img.src = event.target.result;
         img.onload = function () {
             const canvas = document.createElement('canvas');
-            // Hum size ko 500px tak chota kar rahe hain taake Database mein save ho sake
-            const maxWidth = 500; 
+            const maxWidth = 500; // Resize to 500px width
             const scaleSize = maxWidth / img.width;
             canvas.width = maxWidth;
             canvas.height = img.height * scaleSize;
@@ -100,7 +98,7 @@ function compressAndPreview(input, previewId) {
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-            // Quality 0.6 kar di hai (Low size, Good visibility)
+            // Compress to Quality 0.6
             const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
 
             document.getElementById(previewId).innerHTML = `<img src="${dataUrl}">`;
@@ -110,23 +108,19 @@ function compressAndPreview(input, previewId) {
 }
 
 // ==========================================
-// 4. DATA LOADING (FIXED - NO SORTING ISSUE)
+// 4. DATA LOADING
 // ==========================================
 async function loadData() {
     try {
-        // Maine .orderBy hata diya hai taake "Index" ka error na aaye aur data foran dikhe
         const snapshot = await db.collection('customers').get();
-        
         allData = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
         
-        // Data aane ke baad UI update karo
         updateStats();
         loadDueCustomers(); 
         loadAllCustomers(); 
-        
     } catch (e) { 
-        console.error("Data Load Error:", e);
-        alert("Data load nahi hua: " + e.message);
+        console.error(e);
+        alert("Data load error: " + e.message);
     }
 }
 
@@ -148,28 +142,30 @@ function updateStats() {
 }
 
 // ==========================================
-// 5. BUTTONS & ACTIONS (FIXED)
+// 5. BUTTONS, ACTIONS & DELETE
 // ==========================================
 
-// Ye function "Due List" ko render karta hai
+// --- DUE LIST ---
 function loadDueCustomers() {
     const tbody = document.getElementById('due-body');
     tbody.innerHTML = "";
     const today = new Date();
     today.setHours(0,0,0,0);
+    const filterTxt = document.getElementById('due-search').value.toLowerCase();
 
     const dueList = allData.filter(c => {
         if(c.currentBalance <= 0 || !c.nextDueDate) return false;
         let d = new Date(c.nextDueDate);
         d.setHours(0,0,0,0);
-        return d <= today; // Jo aaj ya pehle ki dates hain
+        return d <= today;
     });
 
     if(dueList.length === 0) document.getElementById('no-due-msg').classList.remove('hidden');
     else document.getElementById('no-due-msg').classList.add('hidden');
 
     dueList.forEach(c => {
-        // BUTTON FIX: Single quotes ka khayal rakha gaya hai
+        if(filterTxt && !c.buyerName.toLowerCase().includes(filterTxt)) return;
+
         const btnHtml = `
         <button class="btn-quick-pay" type="button" onclick="quickPay('${c.id}', ${c.monthlyInstallment})">
             <i class="fas fa-check-circle"></i> 
@@ -187,43 +183,101 @@ function loadDueCustomers() {
     });
 }
 
-// Ye function "Green Button" dabane par chalta hai
+function filterDueList() {
+    loadDueCustomers();
+}
+
+// --- QUICK PAY FUNCTION ---
 async function quickPay(id, amount) {
-    // Confirmation alert
-    if(!confirm("Kya Payment Wasool Ho Gayi Hai? Rs. " + amount)) return;
+    if(!confirm("Payment Receive kar li hai? Rs. " + amount)) return;
 
     const c = allData.find(x => x.id === id);
-    if (!c) { alert("Customer not found in memory"); return; }
+    if(!c) return;
 
     const newBal = parseFloat(c.currentBalance) - parseFloat(amount);
-    
-    // Date ko 1 mahina agay barha do
     let nextDate = new Date(c.nextDueDate);
     nextDate.setMonth(nextDate.getMonth() + 1);
-
     const todayStr = new Date().toISOString().split('T')[0];
 
     try {
-        // Database update karo
         await db.collection('customers').doc(id).update({
             currentBalance: newBal,
             nextDueDate: nextDate.toISOString(),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         
-        // History mein likho
         await db.collection('customers').doc(id).collection('payments').add({
             amount: parseFloat(amount),
             date: todayStr,
-            note: "Quick Pay Button Clicked"
+            note: "Quick Pay Button"
         });
 
-        alert("Payment Jama Ho Gayi!");
-        loadData(); // Screen refresh karo
+        alert("Payment Done!");
+        loadData();
     } catch(e) {
         alert("Error: " + e.message);
-        console.error(e);
     }
+}
+
+// --- DELETE FUNCTION (ISKO CHECK KAREIN) ---
+async function deleteCustomer() {
+    // 1. Check karein id select hai ya nahi
+    if(!currentDetailId) {
+        alert("Error: Koi customer select nahi hai.");
+        return;
+    }
+
+    // 2. Confirm karein
+    if(!confirm("CONFIRM DELETE? Ye customer wapis nahi ayega.")) return;
+
+    // 3. Delete Process
+    const btn = document.querySelector('.btn-delete');
+    const oldText = btn.innerText;
+    btn.innerText = "Deleting...";
+    btn.disabled = true;
+
+    try {
+        await db.collection('customers').doc(currentDetailId).delete();
+        alert("Customer Delete Ho Gaya!");
+        closeModal('details-modal');
+        loadData(); // Screen refresh
+    } catch(e) {
+        console.error(e);
+        alert("Delete Error: Permission check karein (Firebase Rules). " + e.message);
+    } finally {
+        btn.innerText = oldText;
+        btn.disabled = false;
+    }
+}
+
+// --- EDIT FUNCTION ---
+function editCustomer() {
+    if(!currentDetailId) return;
+    closeModal('details-modal');
+    
+    const c = allData.find(x => x.id === currentDetailId);
+    
+    document.getElementById('form-mode').value = 'edit';
+    document.getElementById('original-id').value = c.id;
+    document.getElementById('form-heading').innerText = "Edit Customer";
+    
+    // Fill Fields
+    document.getElementById('accountId').value = c.accountId;
+    document.getElementById('buyerName').value = c.buyerName;
+    document.getElementById('phone').value = c.phone;
+    document.getElementById('fatherName').value = c.fatherName || '';
+    document.getElementById('homeAddress').value = c.homeAddress || '';
+    document.getElementById('items').value = c.items || '';
+    document.getElementById('totalPrice').value = c.totalPrice;
+    document.getElementById('advance').value = c.advance;
+    document.getElementById('monthlyInstallment').value = c.monthlyInstallment;
+    document.getElementById('pastPaidMonths').value = c.pastPaidMonths || 0;
+    document.getElementById('currentBalance').value = c.currentBalance;
+    document.getElementById('g1Name').value = c.g1Name || '';
+    document.getElementById('g2Name').value = c.g2Name || '';
+    document.getElementById('issueDate').value = c.issueDate;
+
+    switchView('add-view');
 }
 
 // ==========================================
@@ -240,8 +294,9 @@ function performSearch() {
                (c.phone && c.phone.includes(q));
     });
 
+    if(results.length === 0) grid.innerHTML = "<p>Koi nahi mila.</p>";
+
     results.forEach(c => {
-        // Search mein bhi Green Button lagaya hai
         const btnHtml = c.currentBalance > 0 ? `
         <button class="btn-quick-pay" style="width:100%; justify-content:center; margin-top:10px;" onclick="quickPay('${c.id}', ${c.monthlyInstallment})">
             <i class="fas fa-check-circle"></i> 1 Month Paid (Rs. ${c.monthlyInstallment})
@@ -259,8 +314,6 @@ function performSearch() {
         </div>`;
         grid.innerHTML += card;
     });
-    
-    if(results.length === 0) grid.innerHTML = "<p>Koi customer nahi mila.</p>";
 }
 
 function loadAllCustomers() {
@@ -278,6 +331,14 @@ function loadAllCustomers() {
         </tr>`;
         tbody.innerHTML += row;
     });
+}
+
+function filterAllList() {
+    const q = document.getElementById('all-filter').value.toLowerCase();
+    const rows = document.getElementById('all-body').getElementsByTagName('tr');
+    for(let row of rows) {
+        row.style.display = row.innerText.toLowerCase().includes(q) ? "" : "none";
+    }
 }
 
 // ==========================================
@@ -308,7 +369,6 @@ async function saveCustomer() {
         btn.disabled = false; return;
     }
 
-    // Images uthao (Compressed wali)
     const imgCustInput = document.getElementById('photo-customer');
     const imgCnicInput = document.getElementById('photo-cnic');
     
@@ -362,7 +422,7 @@ async function saveCustomer() {
 }
 
 // ==========================================
-// 8. OTHER FUNCTIONS
+// 8. HELPERS & MODALS
 // ==========================================
 function switchView(viewId) {
     document.querySelectorAll('.content-view').forEach(el => el.classList.add('hidden'));
@@ -387,7 +447,7 @@ function resetForm() {
 }
 
 function openDetails(id) {
-    currentDetailId = id;
+    currentDetailId = id; // Ye variable DELETE ke liye bohat zaroori hai
     const c = allData.find(x => x.id === id);
     if(!c) return;
 
@@ -397,8 +457,8 @@ function openDetails(id) {
         <div class="info-row"><strong>Phone:</strong> <span><a href="tel:${c.phone}">${c.phone}</a></span></div>
         <div class="info-row"><strong>Father:</strong> <span>${c.fatherName || '-'}</span></div>
         <div class="info-row"><strong>Address:</strong> <span>${c.homeAddress || '-'}</span></div>
-        <div class="info-row"><strong>Total Price:</strong> <span>${c.totalPrice}</span></div>
-        <div class="info-row"><strong>Paid (Adv+Old):</strong> <span>${(c.pastPaidMonths*c.monthlyInstallment)+c.advance}</span></div>
+        <div class="info-row"><strong>Total:</strong> <span>${c.totalPrice}</span></div>
+        <div class="info-row"><strong>Paid:</strong> <span>${(c.pastPaidMonths*c.monthlyInstallment)+c.advance}</span></div>
         <div class="info-row"><strong>Remaining:</strong> <span style="color:red; font-weight:bold;">${c.currentBalance}</span></div>
     `;
     document.getElementById('d-info').innerHTML = infoHtml;
@@ -411,9 +471,7 @@ function openDetails(id) {
     tbody.innerHTML += `<tr><td>Start</td><td>Advance Paid (${c.advance})</td></tr>`;
     
     db.collection('customers').doc(id).collection('payments').orderBy('date', 'desc').get().then(snap => {
-        if(snap.empty) {
-            tbody.innerHTML += `<tr><td colspan="2">No recent payments</td></tr>`;
-        }
+        if(snap.empty) tbody.innerHTML += `<tr><td colspan="2">No recent payments</td></tr>`;
         snap.forEach(doc => {
             const p = doc.data();
             tbody.innerHTML += `<tr><td>${p.date}</td><td style="color:green;">Received Rs. ${p.amount}</td></tr>`;
