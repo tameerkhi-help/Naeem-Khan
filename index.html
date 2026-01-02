@@ -3,34 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Naeem Jan Traders - Management System</title>
+    <title>Naeem Jan Traders - Secure System</title>
+    
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     
-    <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div class="language-toggle">
         <button id="langToggle" class="lang-btn">
-            <i class="fas fa-globe"></i>
+            <i class="fas fa-language"></i>
             <span id="langText">اردو</span>
         </button>
     </div>
 
     <div id="login-section" class="container login-container">
         <div class="login-box">
-            <div class="logo-header">
-                <div class="logo-circle">
-                    <i class="fas fa-handshake"></i>
-                </div>
-                <h2 data-en="Naeem Jan Traders" data-ur="نعیم جان ٹریڈرز">Naeem Jan Traders</h2>
-                <p data-en="Secure Login" data-ur="محفوظ لاگ ان">Secure Login</p>
+            <div class="logo-circle">
+                <i class="fas fa-shield-alt"></i>
             </div>
-            <form onsubmit="event.preventDefault(); login();">
+            <h2 data-en="Naeem Jan Traders" data-ur="نعیم جان ٹریڈرز">Naeem Jan Traders</h2>
+            <p data-en="Secure Login Required" data-ur="محفوظ لاگ ان درکار ہے">Secure Login Required</p>
+            
+            <form id="login-form" onsubmit="event.preventDefault(); handleLogin();">
                 <div class="input-group">
                     <i class="fas fa-envelope"></i>
                     <input type="email" id="admin-email" placeholder="Email" required>
@@ -39,219 +39,255 @@
                     <i class="fas fa-lock"></i>
                     <input type="password" id="admin-password" placeholder="Password" required>
                 </div>
-                <button type="submit" id="login-btn" class="login-btn">
-                    <span data-en="Login Now" data-ur="لاگ ان کریں">Login Now</span>
-                </button>
+                <button type="submit" id="login-btn" class="login-btn" data-en="Login" data-ur="لاگ ان">Login</button>
             </form>
-            <p id="login-error" class="error"></p>
+            <p id="login-error" class="error-text"></p>
         </div>
     </div>
 
-    <div id="dashboard-section" class="container dashboard-container hidden">
+    <div id="dashboard-section" class="container hidden">
         <header>
-            <div class="header-left">
-                <div class="company-logo">
+            <div class="header-content">
+                <div class="brand">
                     <i class="fas fa-store"></i>
-                </div>
-                <div>
-                    <h1 data-en="Naeem Jan Traders" data-ur="نعیم جان ٹریڈرز">Naeem Jan Traders</h1>
-                    <div class="status-dot"></div>
-                </div>
-            </div>
-            <div class="header-right">
-                <div class="stats-row">
-                    <div class="stat-card">
-                        <span class="stat-label" data-en="Total Customers" data-ur="کل کسٹمرز">Total Customers</span>
-                        <span class="stat-value" id="total-customers">0</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-label" data-en="Due Today" data-ur="آج واجب الادا">Due Today</span>
-                        <span class="stat-value warning" id="due-today">0</span>
-                    </div>
-                    <div class="stat-card mobile-hide">
-                        <span class="stat-label" data-en="Total Outstanding" data-ur="کل بقایا جات">Total Outstanding</span>
-                        <span class="stat-value" id="total-balance">0</span>
+                    <div>
+                        <h1 data-en="Naeem Jan Traders" data-ur="نعیم جان ٹریڈرز">Naeem Jan Traders</h1>
+                        <span class="status-badge" data-en="Online" data-ur="آن لائن">Online</span>
                     </div>
                 </div>
-                <button onclick="logout()" class="logout-btn">
-                    <i class="fas fa-power-off"></i>
+                <button onclick="handleLogout()" class="logout-btn">
+                    <i class="fas fa-power-off"></i> <span data-en="Logout" data-ur="لاگ آؤٹ">Logout</span>
                 </button>
             </div>
         </header>
 
-        <nav class="main-nav">
-            <button onclick="showView('due-list-view')" class="nav-btn active-nav">
+        <div class="stats-container">
+            <div class="stat-box">
+                <i class="fas fa-users"></i>
+                <div>
+                    <span class="stat-num" id="total-customers">0</span>
+                    <span class="stat-label" data-en="Customers" data-ur="کسٹمرز">Customers</span>
+                </div>
+            </div>
+            <div class="stat-box warning">
+                <i class="fas fa-exclamation-circle"></i>
+                <div>
+                    <span class="stat-num" id="due-today">0</span>
+                    <span class="stat-label" data-en="Due Today" data-ur="آج کی وصولی">Due Today</span>
+                </div>
+            </div>
+            <div class="stat-box success">
+                <i class="fas fa-wallet"></i>
+                <div>
+                    <span class="stat-num" id="total-balance">0</span>
+                    <span class="stat-label" data-en="Total Balance" data-ur="کل بقایا">Total Balance</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="bottom-nav">
+            <button onclick="switchView('due-view')" class="nav-item active" id="nav-due">
                 <i class="fas fa-calendar-check"></i>
-                <span data-en="Today's Due" data-ur="آج کی وصولی">Today's Due</span>
+                <span data-en="Due List" data-ur="وصولی لسٹ">Due List</span>
             </button>
-            <button onclick="showView('search-view')" class="nav-btn">
+            <button onclick="switchView('search-view')" class="nav-item" id="nav-search">
                 <i class="fas fa-search"></i>
                 <span data-en="Search" data-ur="تلاش">Search</span>
             </button>
-            <button onclick="showView('add-customer-view')" class="nav-btn">
+            <button onclick="switchView('add-view')" class="nav-item" id="nav-add">
                 <i class="fas fa-user-plus"></i>
                 <span data-en="New Customer" data-ur="نیا کسٹمر">New Customer</span>
             </button>
-            <button onclick="showView('all-customers-view')" class="nav-btn">
-                <i class="fas fa-users"></i>
-                <span data-en="All List" data-ur="تمام لسٹ">All List</span>
+            <button onclick="switchView('list-view')" class="nav-item" id="nav-list">
+                <i class="fas fa-list"></i>
+                <span data-en="All Data" data-ur="تمام ڈیٹا">All Data</span>
             </button>
         </nav>
 
-        <div id="due-list-view" class="content-view">
-            <div class="view-header">
-                <h3><span data-en="Pending Installments" data-ur="بقایا قسطیں">Pending Installments</span></h3>
-                <button onclick="refreshDueList()" class="icon-btn">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
+        <div id="due-view" class="content-view">
+            <div class="section-title">
+                <h3 data-en="Installments Due" data-ur="آج کی وصولیاں">Installments Due</h3>
+                <button onclick="loadDueCustomers()" class="refresh-btn"><i class="fas fa-sync"></i></button>
             </div>
-            <div class="responsive-table">
-                <table class="styled-table">
+            <div class="table-responsive">
+                <table class="data-table">
                     <thead>
                         <tr>
                             <th data-en="Account ID" data-ur="آئی ڈی">Account ID</th>
                             <th data-en="Name" data-ur="نام">Name</th>
                             <th data-en="Phone" data-ur="فون">Phone</th>
                             <th data-en="Installment" data-ur="قسط">Installment</th>
-                            <th data-en="Due Date" data-ur="تاریخ">Due Date</th>
+                            <th data-en="Date" data-ur="تاریخ">Date</th>
                             <th data-en="Actions" data-ur="ایکشن">Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="due-customers-body">
-                        </tbody>
+                    <tbody id="due-body"></tbody>
                 </table>
             </div>
-            <div id="no-due-msg" class="empty-state hidden">
-                <i class="fas fa-check-circle"></i>
-                <p data-en="No dues for today" data-ur="آج کوئی وصولی نہیں ہے">No dues for today</p>
+            <div id="no-due-msg" class="empty-msg hidden">
+                <i class="fas fa-check-double"></i>
+                <p data-en="No pending installments for today" data-ur="آج کوئی وصولی نہیں ہے">No pending installments for today</p>
             </div>
         </div>
 
         <div id="search-view" class="content-view hidden">
-            <div class="search-box-wrapper">
-                <input type="text" id="search-input" placeholder="Search ID, Name or Phone..." class="big-search">
-                <button onclick="searchCustomer()" class="search-submit-btn">
-                    <i class="fas fa-search"></i>
-                </button>
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="Search by ID, Name or Phone..." data-en="Search by ID, Name or Phone..." data-ur="آئی ڈی، نام یا فون سے تلاش کریں...">
+                <button onclick="performSearch()"><i class="fas fa-search"></i></button>
             </div>
-            <div class="search-options">
-                <label><input type="radio" name="search-type" value="id" checked> <span data-en="ID" data-ur="آئی ڈی">ID</span></label>
-                <label><input type="radio" name="search-type" value="name"> <span data-en="Name" data-ur="نام">Name</span></label>
-                <label><input type="radio" name="search-type" value="phone"> <span data-en="Phone" data-ur="فون">Phone</span></label>
+            <div class="search-radios">
+                <label><input type="radio" name="searchType" value="id" checked> ID</label>
+                <label><input type="radio" name="searchType" value="name"> Name</label>
+                <label><input type="radio" name="searchType" value="phone"> Phone</label>
             </div>
-            <div id="search-result-container" class="cards-grid"></div>
+            <div id="search-results" class="results-grid"></div>
         </div>
 
-        <div id="add-customer-view" class="content-view hidden">
-            <div class="view-header">
-                <h3 id="form-title" data-en="Add New Customer" data-ur="نیا کسٹمر شامل کریں">Add New Customer</h3>
-                <button onclick="resetForm()" class="text-btn" data-en="Clear" data-ur="صاف کریں">Clear</button>
+        <div id="add-view" class="content-view hidden">
+            <div class="form-header">
+                <h3 id="form-heading" data-en="Add New Customer" data-ur="نیا کسٹمر شامل کریں">Add New Customer</h3>
+                <button onclick="resetForm()" class="btn-secondary" data-en="Reset" data-ur="صاف کریں">Reset</button>
             </div>
             
-            <form id="customer-form">
+            <form id="customer-form" onsubmit="event.preventDefault(); saveCustomer();">
                 <input type="hidden" id="form-mode" value="add">
-                <input type="hidden" id="original-account-id">
-                
-                <div class="form-card">
-                    <h4 data-en="Personal Info" data-ur="ذاتی معلومات">Personal Info</h4>
-                    <div class="form-grid">
-                        <div class="input-wrapper">
+                <input type="hidden" id="original-id">
+
+                <div class="form-section">
+                    <h4 data-en="Personal Information" data-ur="ذاتی معلومات">Personal Information</h4>
+                    <div class="input-grid">
+                        <div class="form-group">
                             <label data-en="Account ID *" data-ur="اکاؤنٹ آئی ڈی *">Account ID *</label>
                             <input type="text" id="accountId" required>
                         </div>
-                        <div class="input-wrapper">
-                            <label data-en="Start Date" data-ur="تاریخ اجراء">Start Date</label>
+                        <div class="form-group">
+                            <label data-en="Issue Date" data-ur="تاریخ اجراء">Issue Date</label>
                             <input type="date" id="issueDate">
                         </div>
-                        <div class="input-wrapper">
-                            <label data-en="Name *" data-ur="نام *">Name *</label>
+                        <div class="form-group">
+                            <label data-en="Customer Name *" data-ur="کسٹمر کا نام *">Customer Name *</label>
                             <input type="text" id="buyerName" required>
                         </div>
-                        <div class="input-wrapper">
-                            <label data-en="Phone" data-ur="فون نمبر">Phone</label>
-                            <input type="tel" id="phone">
-                        </div>
-                        <div class="input-wrapper">
+                        <div class="form-group">
                             <label data-en="Father Name" data-ur="والد کا نام">Father Name</label>
                             <input type="text" id="fatherName">
                         </div>
-                         <div class="input-wrapper">
-                            <label data-en="Address" data-ur="پتہ">Address</label>
+                        <div class="form-group">
+                            <label data-en="Mobile Number *" data-ur="موبائل نمبر *">Mobile Number *</label>
+                            <input type="tel" id="phone" required>
+                        </div>
+                        <div class="form-group">
+                            <label data-en="Profession" data-ur="پیشہ">Profession</label>
+                            <input type="text" id="profession">
+                        </div>
+                        <div class="form-group full">
+                            <label data-en="Home Address" data-ur="گھر کا پتہ">Home Address</label>
                             <input type="text" id="homeAddress">
                         </div>
-                    </div>
-                </div>
-
-                <div class="form-card">
-                    <h4 data-en="Product & Payment Details" data-ur="پروڈکٹ اور ادائیگی کی تفصیلات">Product & Payment Details</h4>
-                    <div class="form-grid">
-                        <div class="input-wrapper">
-                            <label data-en="Item Name" data-ur="چیز کا نام">Item Name</label>
-                            <input type="text" id="items" placeholder="e.g. iPhone 15, Fridge...">
-                        </div>
-                        <div class="input-wrapper">
-                            <label data-en="Total Price *" data-ur="کل قیمت *">Total Price *</label>
-                            <input type="number" id="totalPrice" required onchange="calculateRemaining()">
-                        </div>
-                        <div class="input-wrapper">
-                            <label data-en="Advance Payment *" data-ur="ایڈوانس *">Advance Payment *</label>
-                            <input type="number" id="advance" required value="0" onchange="calculateRemaining()">
-                        </div>
-                        <div class="input-wrapper">
-                            <label data-en="Monthly Installment *" data-ur="ماہانہ قسط *">Monthly Installment *</label>
-                            <input type="number" id="monthlyInstallment" required>
-                        </div>
-                        
-                        <div class="input-wrapper highlight-wrapper">
-                            <label data-en="Old Customer? (Paid Installments)" data-ur="پرانا کسٹمر؟ (ادا شدہ قسطیں)">Old Customer? (Already Paid)</label>
-                            <input type="number" id="pastPaidInstallments" placeholder="0" value="0" onchange="calculateRemaining()">
-                            <small data-en="Enter number of months already paid" data-ur="جتنے مہینوں کی قسط دے چکا ہے وہ لکھیں">months paid</small>
-                        </div>
-
-                        <div class="input-wrapper">
-                            <label data-en="Remaining Balance" data-ur="بقایا بیلنس">Remaining Balance</label>
-                            <input type="number" id="initialRemaining" readonly class="readonly-input">
+                        <div class="form-group full">
+                            <label data-en="Office Address" data-ur="دفتر کا پتہ">Office Address</label>
+                            <input type="text" id="officeAddress">
                         </div>
                     </div>
                 </div>
 
-                <div class="form-card">
+                <div class="form-section">
+                    <h4 data-en="Photos" data-ur="تصاویر">Photos</h4>
+                    <div class="photo-upload-container">
+                        <div class="photo-box">
+                            <label for="photo-customer">
+                                <i class="fas fa-camera"></i>
+                                <span data-en="Customer Photo" data-ur="کسٹمر تصویر">Customer Photo</span>
+                            </label>
+                            <input type="file" id="photo-customer" accept="image/*" onchange="previewImage(this, 'preview-customer')">
+                            <div id="preview-customer" class="img-preview"></div>
+                        </div>
+                        <div class="photo-box">
+                            <label for="photo-cnic">
+                                <i class="fas fa-id-card"></i>
+                                <span data-en="CNIC Copy" data-ur="شناختی کارڈ">CNIC Copy</span>
+                            </label>
+                            <input type="file" id="photo-cnic" accept="image/*" onchange="previewImage(this, 'preview-cnic')">
+                            <div id="preview-cnic" class="img-preview"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
                     <h4 data-en="Guarantors" data-ur="ضامن">Guarantors</h4>
-                    <div class="form-grid">
-                        <div class="input-wrapper">
-                            <label data-en="Guarantor 1" data-ur="پہلا ضامن">Guarantor 1</label>
+                    <div class="input-grid">
+                        <div class="form-group">
+                            <label data-en="Guarantor 1 Name" data-ur="پہلا ضامن">Guarantor 1 Name</label>
                             <input type="text" id="g1Name">
                         </div>
-                        <div class="input-wrapper">
-                            <label data-en="Guarantor 2" data-ur="دوسرا ضامن">Guarantor 2</label>
+                        <div class="form-group">
+                            <label data-en="Guarantor 2 Name" data-ur="دوسرا ضامن">Guarantor 2 Name</label>
                             <input type="text" id="g2Name">
                         </div>
                     </div>
                 </div>
 
-                <div class="form-footer">
-                    <button type="button" onclick="cancelEdit()" id="cancel-btn" class="secondary-btn hidden">Cancel</button>
-                    <button type="submit" id="save-btn" class="primary-btn">Save Customer</button>
+                <div class="form-section highlight-section">
+                    <h4 data-en="Product & Payment" data-ur="پروڈکٹ اور ادائیگی">Product & Payment</h4>
+                    <div class="input-grid">
+                        <div class="form-group">
+                            <label data-en="Item Name" data-ur="آئٹم کا نام">Item Name</label>
+                            <input type="text" id="items">
+                        </div>
+                        <div class="form-group">
+                            <label data-en="Model / Serial" data-ur="ماڈل / سیریل">Model / Serial</label>
+                            <input type="text" id="modelNumber">
+                        </div>
+                        <div class="form-group">
+                            <label data-en="Total Price *" data-ur="کل قیمت *">Total Price *</label>
+                            <input type="number" id="totalPrice" required oninput="calculateBalance()">
+                        </div>
+                        <div class="form-group">
+                            <label data-en="Advance *" data-ur="ایڈوانس *">Advance *</label>
+                            <input type="number" id="advance" value="0" required oninput="calculateBalance()">
+                        </div>
+                        <div class="form-group">
+                            <label data-en="Monthly Installment *" data-ur="ماہانہ قسط *">Monthly Installment *</label>
+                            <input type="number" id="monthlyInstallment" required>
+                        </div>
+                        
+                        <div class="form-group old-customer-box">
+                            <label data-en="Old History (Months Paid)" data-ur="پرانی ادا شدہ قسطیں (مہینے)">Old History (Months Paid)</label>
+                            <input type="number" id="pastPaidMonths" value="0" oninput="calculateBalance()">
+                            <small data-en="If old customer, how many months paid?" data-ur="اگر پرانا کسٹمر ہے تو کتنے مہینے دے چکا ہے؟">How many months already paid?</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label data-en="Remaining Balance" data-ur="بقایا بیلنس">Remaining Balance</label>
+                            <input type="number" id="currentBalance" readonly class="readonly-field">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" onclick="switchView('due-view')" class="btn-cancel" data-en="Cancel" data-ur="منسوخ">Cancel</button>
+                    <button type="submit" id="save-btn" class="btn-save" data-en="Save Customer" data-ur="محفوظ کریں">Save Customer</button>
                 </div>
             </form>
         </div>
 
-        <div id="all-customers-view" class="content-view hidden">
-            <div class="view-header">
-                <h3><span data-en="All Customers" data-ur="تمام کسٹمرز">All Customers</span></h3>
-                <input type="text" id="filter-customers" class="mini-search" placeholder="Filter...">
+        <div id="list-view" class="content-view hidden">
+            <div class="section-title">
+                <h3 data-en="All Customers" data-ur="تمام کسٹمرز">All Customers</h3>
+                <input type="text" id="filter-input" placeholder="Filter..." class="filter-box">
             </div>
-            <div class="responsive-table">
-                <table class="styled-table">
+            <div class="table-responsive">
+                <table class="data-table">
                     <thead>
                         <tr>
                             <th data-en="ID" data-ur="آئی ڈی">ID</th>
                             <th data-en="Name" data-ur="نام">Name</th>
+                            <th data-en="Phone" data-ur="فون">Phone</th>
                             <th data-en="Balance" data-ur="بقایا">Balance</th>
                             <th data-en="Actions" data-ur="ایکشن">Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="all-customers-body"></tbody>
+                    <tbody id="all-body"></tbody>
                 </table>
             </div>
         </div>
@@ -260,106 +296,108 @@
     <div id="payment-modal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 data-en="Receive Payment" data-ur="ادائیگی وصول کریں">Receive Payment</h3>
-                <button onclick="closeModal('payment-modal')" class="close-btn">&times;</button>
+                <h3 data-en="Record Payment" data-ur="ادائیگی درج کریں">Record Payment</h3>
+                <span class="close" onclick="closeModal('payment-modal')">&times;</span>
             </div>
             <div class="modal-body">
-                <div class="info-block">
-                    <p id="pay-customer-name" class="bold-text"></p>
-                    <p id="pay-balance-info"></p>
+                <div class="customer-summary">
+                    <h4 id="pay-name">Name</h4>
+                    <p data-en="Current Balance: " data-ur="موجودہ بقایا: ">Current Balance: <span id="pay-balance">0</span></p>
                 </div>
-                <div class="form-grid">
-                    <div class="input-wrapper">
-                        <label data-en="Amount" data-ur="رقم">Amount</label>
-                        <input type="number" id="payment-amount" required>
-                    </div>
-                    <div class="input-wrapper">
-                        <label data-en="Date" data-ur="تاریخ">Date</label>
-                        <input type="date" id="payment-date" required>
-                    </div>
-                    <div class="input-wrapper full-width">
-                        <label data-en="Notes" data-ur="نوٹ">Notes</label>
-                        <textarea id="payment-notes" rows="2"></textarea>
-                    </div>
+                <div class="form-group">
+                    <label data-en="Amount" data-ur="رقم">Amount</label>
+                    <input type="number" id="pay-amount" required>
                 </div>
-                <button onclick="submitPayment()" class="primary-btn full-width-btn" data-en="Confirm Payment" data-ur="ادائیگی محفوظ کریں">Confirm Payment</button>
+                <div class="form-group">
+                    <label data-en="Date" data-ur="تاریخ">Date</label>
+                    <input type="date" id="pay-date" required>
+                </div>
+                <div class="form-group">
+                    <label data-en="Note" data-ur="نوٹ">Note</label>
+                    <textarea id="pay-note"></textarea>
+                </div>
+                <button onclick="submitPayment()" class="btn-save full-width" data-en="Confirm Payment" data-ur="ادائیگی کنفرم کریں">Confirm Payment</button>
             </div>
         </div>
     </div>
 
-    <div id="customer-details-modal" class="modal hidden">
-        <div class="modal-content large-modal">
+    <div id="details-modal" class="modal hidden">
+        <div class="modal-content large">
             <div class="modal-header">
-                <h3 data-en="Customer Details" data-ur="کسٹمر تفصیلات">Customer Details</h3>
-                <button onclick="closeModal('customer-details-modal')" class="close-btn">&times;</button>
+                <h3 data-en="Customer Profile" data-ur="کسٹمر پروفائل">Customer Profile</h3>
+                <span class="close" onclick="closeModal('details-modal')">&times;</span>
             </div>
             <div class="modal-body">
-                <div class="details-grid-layout">
-                    <div class="details-card">
-                        <h4 id="detail-name" class="customer-title">Name</h4>
-                        <div class="detail-row">
-                            <span data-en="ID:" data-ur="آئی ڈی:">ID:</span> <span id="detail-id"></span>
+                <div class="profile-grid">
+                    <div class="profile-images">
+                        <div class="img-display" id="detail-photo-customer"></div>
+                        <div class="img-display" id="detail-photo-cnic"></div>
+                    </div>
+                    
+                    <div class="profile-info">
+                        <div class="info-row">
+                            <strong data-en="Account ID:" data-ur="اکاؤنٹ آئی ڈی:">Account ID:</strong>
+                            <span id="d-id"></span>
                         </div>
-                        <div class="detail-row">
-                            <span data-en="Phone:" data-ur="فون:">Phone:</span> <span id="detail-phone"></span>
+                        <div class="info-row">
+                            <strong data-en="Name:" data-ur="نام:">Name:</strong>
+                            <span id="d-name"></span>
                         </div>
-                        <div class="detail-row">
-                            <span data-en="Item:" data-ur="آئٹم:">Item:</span> <span id="detail-item"></span>
+                        <div class="info-row">
+                            <strong data-en="Father:" data-ur="والد:">Father:</strong>
+                            <span id="d-father"></span>
                         </div>
-                        <div class="detail-row">
-                            <span data-en="Address:" data-ur="پتہ:">Address:</span> <span id="detail-address"></span>
+                        <div class="info-row">
+                            <strong data-en="Phone:" data-ur="فون:">Phone:</strong>
+                            <span id="d-phone"></span>
                         </div>
-                        <div class="detail-actions">
-                             <button onclick="editCurrentCustomer()" class="edit-btn-small" data-en="Edit" data-ur="ترمیم">Edit</button>
-                             <button onclick="openDeleteModal()" class="delete-btn-small" data-en="Delete" data-ur="حذف">Delete</button>
+                        <div class="info-row">
+                            <strong data-en="Address:" data-ur="پتہ:">Address:</strong>
+                            <span id="d-address"></span>
+                        </div>
+                         <div class="info-row">
+                            <strong data-en="Office:" data-ur="دفتر:">Office:</strong>
+                            <span id="d-office"></span>
+                        </div>
+                        <div class="info-row">
+                            <strong data-en="Guarantors:" data-ur="ضامن:">Guarantors:</strong>
+                            <span id="d-guarantors"></span>
                         </div>
                     </div>
+                </div>
 
-                    <div class="details-card financial-card">
-                        <div class="fin-row">
-                            <span data-en="Total Price" data-ur="کل قیمت">Total Price</span>
-                            <strong id="detail-total">0</strong>
-                        </div>
-                        <div class="fin-row">
-                            <span data-en="Paid (Adv+Inst)" data-ur="ادا شدہ">Paid</span>
-                            <strong id="detail-paid" class="text-success">0</strong>
-                        </div>
-                        <div class="fin-row">
-                            <span data-en="Remaining" data-ur="بقایا">Remaining</span>
-                            <strong id="detail-remaining" class="text-danger">0</strong>
-                        </div>
+                <hr>
+
+                <div class="financial-summary">
+                    <div class="fin-box">
+                        <small data-en="Total Price" data-ur="کل قیمت">Total Price</small>
+                        <span id="d-total">0</span>
+                    </div>
+                    <div class="fin-box">
+                        <small data-en="Paid" data-ur="ادا شدہ">Paid</small>
+                        <span id="d-paid" class="text-green">0</span>
+                    </div>
+                    <div class="fin-box">
+                        <small data-en="Remaining" data-ur="بقایا">Remaining</small>
+                        <span id="d-remaining" class="text-red">0</span>
                     </div>
                 </div>
 
-                <div class="ledger-section">
-                    <h4 data-en="Installment History" data-ur="قسطوں کی تفصیل">Installment History</h4>
-                    <div class="ledger-table-container">
-                        <table class="ledger-table">
-                            <thead>
-                                <tr>
-                                    <th data-en="Month" data-ur="مہینہ">Month</th>
-                                    <th data-en="Expected" data-ur="متوقع">Expected</th>
-                                    <th data-en="Status" data-ur="حالت">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="ledger-body">
-                                </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+                <h4 class="mt-20" data-en="Installment History" data-ur="قسطوں کی تفصیل">Installment History</h4>
+                <table class="ledger-table">
+                    <thead>
+                        <tr>
+                            <th data-en="Month" data-ur="مہینہ">Month</th>
+                            <th data-en="Status" data-ur="حالت">Status</th>
+                            <th data-en="Amount" data-ur="رقم">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledger-body"></tbody>
+                </table>
 
-    <div id="delete-modal" class="modal hidden">
-        <div class="modal-content small-modal">
-            <div class="modal-body text-center">
-                <i class="fas fa-exclamation-triangle text-danger" style="font-size: 3rem; margin-bottom: 15px;"></i>
-                <h3 data-en="Are you sure?" data-ur="کیا آپ کو یقین ہے؟">Are you sure?</h3>
-                <p data-en="This will permanently delete this customer." data-ur="یہ کسٹمر ہمیشہ کے لیے حذف ہو جائے گا۔">This will permanently delete this customer.</p>
-                <div class="modal-buttons">
-                    <button onclick="closeModal('delete-modal')" class="secondary-btn" data-en="No, Cancel" data-ur="نہیں">No, Cancel</button>
-                    <button onclick="confirmDelete()" class="delete-btn" data-en="Yes, Delete" data-ur="ہاں، حذف کریں">Yes, Delete</button>
+                <div class="modal-footer">
+                    <button onclick="editCustomerFromModal()" class="btn-edit-modal" data-en="Edit" data-ur="ترمیم">Edit</button>
+                    <button onclick="deleteCustomerFromModal()" class="btn-delete-modal" data-en="Delete" data-ur="حذف">Delete</button>
                 </div>
             </div>
         </div>
