@@ -1,201 +1,319 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr" id="htmlRoot">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Installment Management System</title>
+    <title>Naeem Jan Traders - Installment System</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div id="loading-overlay" class="hidden">
-        <div class="spinner"></div>
-        <p id="loading-text">Processing...</p>
+    <div class="language-toggle">
+        <button id="langToggle" class="lang-btn">
+            <i class="fas fa-language"></i>
+            <span id="langText">اردو</span>
+        </button>
     </div>
 
-    <div id="login-section" class="container login-wrapper">
+    <div id="login-section" class="container login-container">
         <div class="login-box">
-            <i class="fas fa-shield-alt logo-icon"></i>
-            <h2>System Login</h2>
-            <form onsubmit="event.preventDefault(); handleLogin();">
-                <input type="email" id="email" placeholder="Email" required>
-                <input type="password" id="password" placeholder="Password" required>
-                <button type="submit" class="btn-primary">Login</button>
+            <div class="logo-circle">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <h2 data-en="Naeem Jan Traders" data-ur="نعیم جان ٹریڈرز">Naeem Jan Traders</h2>
+            <p data-en="Security Check: Please Login" data-ur="سیکیورٹی چیک: براہ کرم لاگ ان کریں">Security Check: Please Login</p>
+            
+            <form id="login-form" onsubmit="event.preventDefault(); handleLogin();">
+                <div class="input-group">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="admin-email" placeholder="Email" required>
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="admin-password" placeholder="Password" required>
+                </div>
+                <button type="submit" id="login-btn" class="login-btn" data-en="Login Securely" data-ur="محفوظ لاگ ان">Login Securely</button>
             </form>
-            <p id="login-error" class="error-msg"></p>
+            <p id="login-error" class="error-text"></p>
         </div>
     </div>
 
     <div id="dashboard-section" class="container hidden">
         <header>
-            <div class="brand">
-                <i class="fas fa-store"></i> Installment System
+            <div class="header-content">
+                <div class="brand">
+                    <i class="fas fa-store"></i>
+                    <div>
+                        <h1 data-en="Naeem Jan Traders" data-ur="نعیم جان ٹریڈرز">Naeem Jan Traders</h1>
+                        <span class="status-badge" data-en="System Active" data-ur="سسٹم ایکٹو">System Active</span>
+                    </div>
+                </div>
+                <button onclick="handleLogout()" class="logout-btn">
+                    <i class="fas fa-power-off"></i> <span class="mobile-hide" data-en="Logout" data-ur="لاگ آؤٹ">Logout</span>
+                </button>
             </div>
-            <button onclick="handleLogout()" class="btn-logout"><i class="fas fa-power-off"></i></button>
         </header>
 
-        <div class="stats-grid">
-            <div class="stat-card">
-                <h3>Total Customers</h3>
-                <span id="total-customers">0</span>
+        <div class="stats-container">
+            <div class="stat-box">
+                <i class="fas fa-users"></i>
+                <div>
+                    <span class="stat-num" id="total-customers">0</span>
+                    <span class="stat-label" data-en="Total Customers" data-ur="کل کسٹمرز">Total Customers</span>
+                </div>
             </div>
-            <div class="stat-card warning">
-                <h3>Due Today</h3>
-                <span id="due-today">0</span>
+            <div class="stat-box warning">
+                <i class="fas fa-money-bill-wave"></i>
+                <div>
+                    <span class="stat-num" id="due-today">0</span>
+                    <span class="stat-label" data-en="Need to Pay" data-ur="دینے والے">Need to Pay</span>
+                </div>
             </div>
         </div>
 
-        <nav class="nav-bar">
-            <button onclick="switchView('due-view')" class="nav-btn active" id="btn-due">
-                <i class="fas fa-list-ul"></i> Due List
+        <nav class="bottom-nav">
+            <button onclick="switchView('due-view')" class="nav-item active" id="nav-due">
+                <i class="fas fa-calendar-check"></i>
+                <span data-en="Due List" data-ur="وصولی لسٹ">Due List</span>
             </button>
-            <button onclick="switchView('search-view')" class="nav-btn" id="btn-search">
-                <i class="fas fa-search"></i> Search
+            <button onclick="switchView('search-view')" class="nav-item" id="nav-search">
+                <i class="fas fa-search"></i>
+                <span data-en="Search" data-ur="تلاش">Search</span>
             </button>
-            <button onclick="switchView('add-view')" class="nav-btn" id="btn-add">
-                <i class="fas fa-user-plus"></i> Add New
+            <button onclick="switchView('add-view')" class="nav-item" id="nav-add">
+                <i class="fas fa-user-plus"></i>
+                <span data-en="Add New" data-ur="نیا کسٹمر">Add New</span>
+            </button>
+            <button onclick="switchView('list-view')" class="nav-item" id="nav-list">
+                <i class="fas fa-list"></i>
+                <span data-en="All Data" data-ur="تمام ڈیٹا">All Data</span>
             </button>
         </nav>
 
-        <div id="due-view" class="view-section">
-            <div class="section-header">
-                <h3>Pending Installments</h3>
-                <button onclick="loadData()" class="btn-refresh"><i class="fas fa-sync"></i></button>
+        <div id="due-view" class="content-view">
+            <div class="section-title">
+                <h3 data-en="Today's Collection" data-ur="آج کی وصولیاں">Today's Collection</h3>
+                <button onclick="loadDueCustomers()" class="refresh-btn"><i class="fas fa-sync"></i></button>
             </div>
-            <div id="due-list-container" class="card-list">
-                </div>
-            <div id="no-due-msg" class="hidden empty-state">No pending payments today.</div>
+            
+            <div class="search-box">
+                 <input type="text" id="due-search" placeholder="Filter List..." onkeyup="filterDueList()">
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th data-en="ID" data-ur="آئی ڈی">ID</th>
+                            <th data-en="Name" data-ur="نام">Name</th>
+                            <th data-en="Phone" data-ur="فون">Phone</th>
+                            <th data-en="Installment" data-ur="قسط">Installment</th>
+                            <th data-en="Quick Action" data-ur="فوری ایکشن">Quick Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="due-body"></tbody>
+                </table>
+            </div>
+            <div id="no-due-msg" class="empty-msg hidden">
+                <i class="fas fa-check-circle"></i>
+                <p data-en="No pending payments for today" data-ur="آج کوئی وصولی نہیں ہے">No pending payments for today</p>
+            </div>
         </div>
 
-        <div id="search-view" class="view-section hidden">
-            <input type="text" id="search-input" placeholder="Search Name, ID, or Phone..." class="search-bar" onkeyup="performSearch()">
-            <div id="search-results" class="card-list"></div>
+        <div id="search-view" class="content-view hidden">
+            <div class="search-box big-search">
+                <input type="text" id="search-input" placeholder="Enter Name, ID or Phone..." data-en="Enter Name, ID or Phone..." data-ur="نام، آئی ڈی یا فون درج کریں...">
+                <button onclick="performSearch()"><i class="fas fa-search"></i></button>
+            </div>
+            <div id="search-results" class="results-grid"></div>
         </div>
 
-        <div id="add-view" class="view-section hidden">
-            <h3 id="form-title">Add New Customer</h3>
+        <div id="add-view" class="content-view hidden">
+            <div class="form-header">
+                <h3 id="form-heading" data-en="Add Customer" data-ur="کسٹمر شامل کریں">Add Customer</h3>
+                <button onclick="resetForm()" class="btn-secondary" data-en="Clear" data-ur="صاف کریں">Clear</button>
+            </div>
+            
             <form id="customer-form" onsubmit="event.preventDefault(); saveCustomer();">
-                <input type="hidden" id="edit-id"> <div class="form-grid">
-                    <div class="input-group">
-                        <label>Account ID</label>
-                        <input type="text" id="inp-id" required>
-                    </div>
-                    <div class="input-group">
-                        <label>Full Name</label>
-                        <input type="text" id="inp-name" required>
-                    </div>
-                    <div class="input-group">
-                        <label>Phone Number</label>
-                        <input type="tel" id="inp-phone" required>
-                    </div>
-                    <div class="input-group">
-                        <label>Father Name</label>
-                        <input type="text" id="inp-father">
-                    </div>
-                    <div class="input-group full">
-                        <label>Address</label>
-                        <input type="text" id="inp-address">
-                    </div>
-                </div>
+                <input type="hidden" id="form-mode" value="add">
+                <input type="hidden" id="original-id">
 
-                <div class="image-upload-section">
-                    <div class="upload-box">
-                        <label for="file-customer"><i class="fas fa-camera"></i> User Photo</label>
-                        <input type="file" id="file-customer" accept="image/*" onchange="previewImage(this, 'prev-cust')">
-                        <div id="prev-cust" class="preview-area"></div>
-                    </div>
-                    <div class="upload-box">
-                        <label for="file-cnic"><i class="fas fa-id-card"></i> CNIC / ID</label>
-                        <input type="file" id="file-cnic" accept="image/*" onchange="previewImage(this, 'prev-cnic')">
-                        <div id="prev-cnic" class="preview-area"></div>
-                    </div>
-                </div>
-
-                <div class="payment-section">
-                    <h4>Payment Details</h4>
-                    <div class="form-grid">
-                        <div class="input-group">
-                            <label>Item Name</label>
-                            <input type="text" id="inp-item">
+                <div class="form-section">
+                    <h4 data-en="Personal Details" data-ur="ذاتی تفصیلات">Personal Details</h4>
+                    <div class="input-grid">
+                        <div class="form-group">
+                            <label data-en="Account ID *" data-ur="اکاؤنٹ آئی ڈی *">Account ID *</label>
+                            <input type="text" id="accountId" required>
                         </div>
-                        <div class="input-group">
-                            <label>Total Price</label>
-                            <input type="number" id="inp-total" oninput="calcBalance()" required>
+                        <div class="form-group">
+                            <label data-en="Name *" data-ur="نام *">Name *</label>
+                            <input type="text" id="buyerName" required>
                         </div>
-                        <div class="input-group">
-                            <label>Advance Payment</label>
-                            <input type="number" id="inp-advance" value="0" oninput="calcBalance()" required>
+                        <div class="form-group">
+                            <label data-en="Mobile *" data-ur="موبائل *">Mobile *</label>
+                            <input type="tel" id="phone" required>
                         </div>
-                        <div class="input-group">
-                            <label>Monthly Installment</label>
-                            <input type="number" id="inp-monthly" required>
+                        <div class="form-group">
+                            <label data-en="Father Name" data-ur="والد کا نام">Father Name</label>
+                            <input type="text" id="fatherName">
                         </div>
-                        <div class="input-group old-cust">
-                            <label>Previous Months Paid (Old)</label>
-                            <input type="number" id="inp-old" value="0" oninput="calcBalance()">
+                        <div class="form-group">
+                            <label data-en="Address" data-ur="پتہ">Address</label>
+                            <input type="text" id="homeAddress">
                         </div>
-                        <div class="input-group">
-                            <label>Remaining Balance</label>
-                            <input type="number" id="inp-balance" readonly>
-                        </div>
-                         <div class="input-group">
-                            <label>Issue Date</label>
-                            <input type="date" id="inp-date" required>
+                        <div class="form-group">
+                            <label data-en="Issue Date" data-ur="تاریخ اجراء">Issue Date</label>
+                            <input type="date" id="issueDate">
                         </div>
                     </div>
                 </div>
 
-                <div class="form-buttons">
-                    <button type="button" onclick="resetForm()" class="btn-secondary">Clear</button>
-                    <button type="submit" class="btn-primary">Save Customer</button>
+                <div class="form-section">
+                    <h4 data-en="Documents (Auto-Compress)" data-ur="دستاویزات (آٹو کمپریس)">Documents (Auto-Compress)</h4>
+                    <div class="photo-upload-container">
+                        <div class="photo-box">
+                            <label for="photo-customer">
+                                <i class="fas fa-camera"></i>
+                                <span data-en="Customer Photo" data-ur="کسٹمر تصویر">Customer Photo</span>
+                            </label>
+                            <input type="file" id="photo-customer" accept="image/*" onchange="compressAndPreview(this, 'preview-customer')">
+                            <div id="preview-customer" class="img-preview"></div>
+                        </div>
+                        <div class="photo-box">
+                            <label for="photo-cnic">
+                                <i class="fas fa-id-card"></i>
+                                <span data-en="CNIC / ID Card" data-ur="شناختی کارڈ">CNIC / ID Card</span>
+                            </label>
+                            <input type="file" id="photo-cnic" accept="image/*" onchange="compressAndPreview(this, 'preview-cnic')">
+                            <div id="preview-cnic" class="img-preview"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h4 data-en="Guarantors" data-ur="ضامن">Guarantors</h4>
+                    <div class="input-grid">
+                        <div class="form-group">
+                            <label data-en="Guarantor 1" data-ur="پہلا ضامن">Guarantor 1</label>
+                            <input type="text" id="g1Name">
+                        </div>
+                        <div class="form-group">
+                            <label data-en="Guarantor 2" data-ur="دوسرا ضامن">Guarantor 2</label>
+                            <input type="text" id="g2Name">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section highlight-section">
+                    <h4 data-en="Payment Plan" data-ur="پیمنٹ پلان">Payment Plan</h4>
+                    <div class="input-grid">
+                         <div class="form-group">
+                            <label data-en="Item Name" data-ur="آئٹم کا نام">Item Name</label>
+                            <input type="text" id="items">
+                        </div>
+                        <div class="form-group">
+                            <label data-en="Total Price *" data-ur="کل قیمت *">Total Price *</label>
+                            <input type="number" id="totalPrice" required oninput="calculateBalance()">
+                        </div>
+                        <div class="form-group">
+                            <label data-en="Advance *" data-ur="ایڈوانس *">Advance *</label>
+                            <input type="number" id="advance" value="0" required oninput="calculateBalance()">
+                        </div>
+                        <div class="form-group">
+                            <label data-en="Monthly Installment *" data-ur="ماہانہ قسط *">Monthly Installment *</label>
+                            <input type="number" id="monthlyInstallment" required>
+                        </div>
+                        <div class="form-group old-customer-box">
+                            <label data-en="Old Paid Months" data-ur="پرانی ادا شدہ قسطیں (مہینے)">Old Paid Months</label>
+                            <input type="number" id="pastPaidMonths" value="0" oninput="calculateBalance()">
+                        </div>
+                        <div class="form-group">
+                            <label data-en="Remaining Balance" data-ur="بقایا بیلنس">Remaining Balance</label>
+                            <input type="number" id="currentBalance" readonly class="readonly-field">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" id="save-btn" class="btn-save" data-en="Save Customer" data-ur="محفوظ کریں">Save Customer</button>
                 </div>
             </form>
         </div>
-    </div>
 
-    <div id="profile-modal" class="modal hidden">
-        <div class="modal-content">
-            <span class="close-modal" onclick="closeModal()">&times;</span>
-            
-            <div class="profile-images">
-                <div class="img-container" onclick="zoomImage('img-cust-display')">
-                    <p>User</p>
-                    <img id="img-cust-display" src="" alt="No Image">
-                </div>
-                <div class="img-container" onclick="zoomImage('img-cnic-display')">
-                    <p>CNIC</p>
-                    <img id="img-cnic-display" src="" alt="No Image">
-                </div>
+        <div id="list-view" class="content-view hidden">
+            <div class="section-title">
+                <h3 data-en="All Customers" data-ur="تمام کسٹمرز">All Customers</h3>
+                <input type="text" id="all-filter" placeholder="Search..." onkeyup="filterAllList()">
             </div>
-
-            <div class="profile-info" id="profile-details">
-                </div>
-
-            <hr>
-
-            <div class="history-section">
-                <h4>Installment History</h4>
-                <div class="history-list" id="history-list">
-                    </div>
-            </div>
-
-            <div class="modal-actions">
-                <button onclick="editCustomer()" class="btn-edit">Edit</button>
-                <button onclick="deleteCustomer()" class="btn-delete">Delete Customer</button>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th data-en="ID" data-ur="آئی ڈی">ID</th>
+                            <th data-en="Name" data-ur="نام">Name</th>
+                            <th data-en="Balance" data-ur="بقایا">Balance</th>
+                            <th data-en="Action" data-ur="ایکشن">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="all-body"></tbody>
+                </table>
             </div>
         </div>
     </div>
 
-    <div id="zoom-modal" class="modal hidden" onclick="this.classList.add('hidden')">
-        <div class="zoom-content">
-            <img id="zoomed-image" src="">
+    <div id="payment-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-en="Manual Payment" data-ur="ادائیگی">Manual Payment</h3>
+                <span class="close" onclick="closeModal('payment-modal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <h4 id="pay-name"></h4>
+                <div class="form-group">
+                    <label>Amount</label>
+                    <input type="number" id="pay-amount">
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="pay-date">
+                </div>
+                <button onclick="submitPayment()" class="btn-save full-width">Save Payment</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="details-modal" class="modal hidden">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3>Profile</h3>
+                <span class="close" onclick="closeModal('details-modal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="profile-images">
+                    <div id="d-img-cust" class="img-box"></div>
+                    <div id="d-img-cnic" class="img-box"></div>
+                </div>
+                <div class="profile-info" id="d-info"></div>
+                <hr>
+                <div class="ledger-container">
+                    <h4>Installment History</h4>
+                    <table class="ledger-table">
+                        <thead><tr><th>Month</th><th>Status</th></tr></thead>
+                        <tbody id="ledger-body"></tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button onclick="editCustomer()" class="btn-edit">Edit</button>
+                    <button onclick="deleteCustomer()" class="btn-delete">Delete</button>
+                </div>
+            </div>
         </div>
     </div>
 
